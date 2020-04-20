@@ -1,0 +1,3 @@
+[submodule "modules/cassie_description"]
+	path = modules/cassie_description
+	url = git@bitbucket.org:cassie_caltech/cassie_description.git
