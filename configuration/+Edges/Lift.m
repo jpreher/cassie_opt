@@ -23,8 +23,15 @@ function guard = Lift(tar)
     guard.addImpactConstraint(struct2array(tar.HolonomicConstraints));
     
     %% The guard should not be a rigid impact...
-    %constr = fields(guard.ImpactConstraints);
-    %guard.removeImpactConstraint(constr);
-    %guard.configure();
+%     constr = fields(guard.ImpactConstraints);
+%     guard.removeImpactConstraint(constr);
+    %
+    %     R = guard.R;
+    %     js = {'LeftShinPitch','LeftAchillesSpring','RightShinPitch','RightAchillesSpring'};
+    %     for j = 1:length(js)
+    %         ind = tar.getJointIndices(js{j});
+    %         R(ind,ind) = 0;
+    %     end
+    guard.configure();
 
 end

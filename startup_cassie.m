@@ -26,9 +26,8 @@ do_export_behavior = 0;
       is_symmetric = 1;
 
 %%% Stepping (time-based) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% behaviorName = 'stepping_rigid_planar_v4';
-behaviorName = 'stepping_v4';
-%     behaviorName = 'walking_v4_planar';
+% behaviorName = 'stepping_planar';
+behaviorName = 'stepping';
     
 %%  Run the associated behavior constructor %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 behavior = loadBehavior(behaviorName, is_symmetric, ...

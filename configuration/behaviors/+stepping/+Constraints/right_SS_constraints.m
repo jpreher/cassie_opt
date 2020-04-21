@@ -11,15 +11,15 @@ function right_SS_constraints(nlp, bounds, varargin)
     domain.VirtualConstraints.position.imposeNLPConstraint(nlp, [bounds.position.kp, bounds.position.kd], [1, 1]);
     
     %% tau boundary [0,1]
-        T_name = nlp.OptVarTable.T(1).Name;
-        T      = SymVariable(lower(T_name), [nlp.OptVarTable.T(1).Dimension,1]);
-        p_name = nlp.OptVarTable.pposition(1).Name;
-        p      = SymVariable(lower(p_name), [nlp.OptVarTable.pposition(1).Dimension, 1]);
-        tau_0  = SymFunction(['tau_0_', domain.Name], (T(1)-p(2))/(p(1)-p(2)), {T,p});
-        tau_F  = SymFunction(['tau_F_', domain.Name], (T(2)-p(2))/(p(1)-p(2)), {T,p});
-        addNodeConstraint(nlp, tau_0, {T_name,p_name}, 'first', 0, 0, 'Linear');
-        addNodeConstraint(nlp, tau_F, {T_name,p_name}, 'last',  1, 1, 'Linear');
-    %
+    T_name = nlp.OptVarTable.T(1).Name;
+    T      = SymVariable(lower(T_name), [nlp.OptVarTable.T(1).Dimension,1]);
+    p_name = nlp.OptVarTable.pposition(1).Name;
+    p      = SymVariable(lower(p_name), [nlp.OptVarTable.pposition(1).Dimension, 1]);
+    tau_0  = SymFunction(['tau_0_', domain.Name], (T(1)-p(2))/(p(1)-p(2)), {T,p});
+    tau_F  = SymFunction(['tau_F_', domain.Name], (T(2)-p(2))/(p(1)-p(2)), {T,p});
+    addNodeConstraint(nlp, tau_0, {T_name,p_name}, 'first', 0, 0, 'Linear');
+    addNodeConstraint(nlp, tau_F, {T_name,p_name}, 'last',  1, 1, 'Linear');
+    
     %     p_name = nlp.OptVarTable.pvelocity(1).Name;
     %     p      = SymVariable(lower(p_name), [nlp.OptVarTable.pvelocity(1).Dimension, 1]);
     %     tau_0  = SymFunction(['tauv_0_', domain.Name], (T(1)-p(2))/(p(1)-p(2)), {T,p});
@@ -27,11 +27,12 @@ function right_SS_constraints(nlp, bounds, varargin)
     %     addNodeConstraint(nlp, tau_0, {T_name,p_name}, 'first', 0, 0, 'Linear');
     %     addNodeConstraint(nlp, tau_F, {T_name,p_name}, 'last',  1, 1, 'Linear');
     
-%     tau = domain.VirtualConstraints.velocity.PhaseFuncs{1};
+%     tau = domain.VirtualConstraints.position.PhaseFuncs{1};
 %     addNodeConstraint(nlp, tau, {'x','pposition'}, 'all',  0, 1, 'Nonlinear');  
 %     addNodeConstraint(nlp, tau, {'x','pposition'}, 'last',  1, 1, 'Nonlinear');  
     
-%     tauv = domain.VirtualConstraints.velocity.PhaseFuncs{1};
+%     tauv = domain.VirtualConstraints.position.PhaseFuncs{1};
+
 %     addNodeConstraint(nlp, tauv, {'x','pvelocity'}, 'all',  0, 1, 'Nonlinear'); 
 %     addNodeConstraint(nlp, tauv, {'x','pvelocity'}, 'last',  1, 1, 'Nonlinear'); 
     
@@ -62,10 +63,6 @@ function right_SS_constraints(nlp, bounds, varargin)
 %     avg_vel_func = SymFunction('floating_velocity', avg_vel, dx);
 %     addIntegralConstraint(nlp, avg_vel_func, {'dx'}, ...
 %         v_target, v_target,'Nonlinear');
-    
-    
-    
-    
     
     %% nsf pitch
     nsf_orient = domain.getCartesianPosition(domain.ContactPoints.LeftToe) - domain.getCartesianPosition(domain.ContactPoints.LeftHeel);
@@ -103,8 +100,8 @@ function right_SS_constraints(nlp, bounds, varargin)
         vyi_ub = +0.05;
     end
     addNodeConstraint(nlp, v_left_foot_fun, {'x','dx'}, 'last', ...
-        [vxi_lb, vyi_lb, -0.30], ...
-        [vxi_ub, vyi_ub, -0.05],'Nonlinear');
+        [vxi_lb, vyi_lb, -0.20], ...
+        [vxi_ub, vyi_ub, -0.01],'Nonlinear');
 
     
 	%%% NSF-X shoundn't swing too fast
@@ -119,16 +116,16 @@ function right_SS_constraints(nlp, bounds, varargin)
     
     %%% NSF-Z shoundn't swing too fast
     nsf_vel_z_fun = SymFunction('nsf_velocity_z', v_left_foot(3), {x, dx});
-    addNodeConstraint(nlp, nsf_vel_z_fun, {'x', 'dx'}, 1:3:nlp.NumNode, -2.0, 2.0, 'Nonlinear');
+    addNodeConstraint(nlp, nsf_vel_z_fun, {'x', 'dx'}, 1:3:nlp.NumNode, -2.5, 2.5, 'Nonlinear');
     
     %% nsf clearance
     nsf_height = SymFunction(['nsf_height_', domain.Name], nlp.Plant.EventFuncs.nsf.ConstrExpr, {x});
     addNodeConstraint(nlp, nsf_height, {'x'}, floor(nlp.NumNode/4),   0.04, inf,'Nonlinear');
-    addNodeConstraint(nlp, nsf_height, {'x'}, floor(nlp.NumNode/2),   0.12, inf,'Nonlinear');
+    addNodeConstraint(nlp, nsf_height, {'x'}, floor(nlp.NumNode/2),   0.14, inf,'Nonlinear');
     addNodeConstraint(nlp, nsf_height, {'x'}, floor(3*nlp.NumNode/4), 0.04, inf,'Nonlinear');
     
     %% step width
-    T = 0.35;
+    T = nlp.OptVarTable.T(1).UpperBound(2);
     right_foot = domain.getCartesianPosition(domain.ContactPoints.RightSole);  
     left_foot  = domain.getCartesianPosition(domain.ContactPoints.LeftSole);  
     constraint = tomatrix(left_foot(1:2) - right_foot(1:2));
@@ -141,7 +138,7 @@ function right_SS_constraints(nlp, bounds, varargin)
     addNodeConstraint(nlp, constraint_func, {'x'}, 'first', lb, ub, 'NonLinear');
     
     lb = [-1.5;
-          0.15];
+          0.22];
     ub = [+1.5;
           0.35];
     addNodeConstraint(nlp, constraint_func, {'x'}, 2:nlp.NumNode, lb, ub, 'NonLinear');

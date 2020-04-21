@@ -36,10 +36,8 @@ fprintf('Compilation took %f minutes.\n', toc(t1)/60);
 %%%% Create a library of walking gaits
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gait Library
-vd_x = -0.40 : 0.05 : 0.60; % : 0.1 : 1.0;
-vd_y = 0;    % -0.5 : 0.1 : 0.5;
-
-
+vd_x = -0.3 : 0.05 : 0.8; %-0.4 : 0.05 : 0.8; % -0.3 : 0.05 : 0.8;
+vd_y = 0;
 
 % Iterate over list
 for i = 1:length(vd_x)
@@ -50,9 +48,16 @@ for i = 1:length(vd_x)
         display(show_this)
         nlp = feval(strcat(behavior.name, '.Constraints.setupOpt'), behavior, vd);
         
-        
-%         loadNodeInitialGuess(nlp.Phase(1), logger(1));
-        
+        if exist('logger','var') == 1
+            loadNodeInitialGuess(nlp.Phase(1), logger(1));
+            if length(logger) > 1
+                loadNodeInitialGuess(nlp.Phase(3), logger(2));
+                loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(2));
+                loadEdgeInitialGuess(nlp.Phase(4), logger(2), logger(1));
+            else
+                loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(1));
+            end
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% Link the NLP problem to a NLP solver
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -101,11 +106,11 @@ for i = 1:length(vd_x)
             
             %%% log optimization results
             save(strcat(save_path, 'optData.mat'), 'data');
-            %movefile('log.txt', save_path);
+            movefile('log.txt', save_path);
         end
         
         %%% Load previous result for next loop of gait library
-        loadNodeInitialGuess(nlp.Phase(1), logger(1));
-        loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(1));
+        %loadNodeInitialGuess(nlp.Phase(1), logger(1));
+        %loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(1));
     end
 end

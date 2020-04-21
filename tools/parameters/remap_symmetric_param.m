@@ -35,15 +35,15 @@ for i = 1:ndomain
         rollOutput = strfind(labels, 'Roll');
         posYOutput = strfind(labels, 'PosY');
         
-%         yawIndices  = find(~cellfun(@isempty,yawOutput));
-%         rollIndices = find(~cellfun(@isempty,rollOutput));
-%         YposIndices = find(~cellfun(@isempty,posYOutput));
+        yawIndices  = find(~cellfun(@isempty,yawOutput));
+        rollIndices = find(~cellfun(@isempty,rollOutput));
+        YposIndices = find(~cellfun(@isempty,posYOutput));
 
         apos_fixed = reshape(params{i}.aposition, domain.VirtualConstraints.position.Dimension, degree+1);
         
-%         apos_fixed(yawIndices,:)  = -apos_fixed(yawIndices,:);
-%         apos_fixed(rollIndices,:) = -apos_fixed(rollIndices,:);
-%         apos_fixed(YposIndices,:) = -apos_fixed(YposIndices,:);
+        apos_fixed(yawIndices,:)  = -apos_fixed(yawIndices,:);
+        apos_fixed(rollIndices,:) = -apos_fixed(rollIndices,:);
+        apos_fixed(YposIndices,:) = -apos_fixed(YposIndices,:);
 
         param.aposition = apos_fixed(:);
         

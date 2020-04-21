@@ -27,7 +27,7 @@ classdef behavior < handle
     methods
         function obj = init(obj, is_symmetric, delay_coriolis, omit_coriolis)
             % Assign name
-            obj.name = 'stepping_planar_v4';
+            obj.name = 'stepping_planar';
             obj.isSymmetric = is_symmetric;
             
             % Load the namespace domains

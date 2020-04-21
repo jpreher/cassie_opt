@@ -1,11 +1,11 @@
-%% Function: SingleSupport
+%% Function: DoubleSupport
 %
 % Description: Generates the domain structure for 3D single-support.
 %
 % Author: Jenna Reher, jreher@caltech.edu
 % ________________________________________
 
-function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
+function [ domain ] = DoubleSupport( domain, stanceLeg, ~ )
     % Get the current leg
     leg = stanceLeg;
     assert(strcmp(leg,'Left') || strcmp(leg,'Right'), 'The leg must be specified as Left or Right');
@@ -43,7 +43,6 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
     left_legLength = eval_math_fun('Chop', left_legLength);
     left_legLength = sqrt(left_legLength);
 
-    
     right_com_frame = domain.Joints(getJointIndices(domain, 'RightHipPitch'));
     p_CoM = domain.getCartesianPosition(right_com_frame)';
     p_CoM = p_CoM.subs(x(1:6), zeros(6,1));
@@ -92,39 +91,40 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
     end
         
     %% Add contact
-    addZMP = true;
+    addZMP = false;
     domain = CustomContact.CassieFootCustom(domain, leg, addZMP);
+    domain = CustomContact.CassieFootCustom(domain, nsl, addZMP);
             
-    %% Add event: nsf reaches ground
-    % height of non-stance foot
-    h_nsf = UnilateralConstraint(domain, p_nsmf(3), 'nsf', 'x');
-    domain = addEvent(domain, h_nsf);
-        
-    %% Swing leg is rigid 
-    rigid_springs = [x([nsl, 'ShinPitch']); 
-                     x([nsl, 'AchillesSpring'])];
-    hol_trans_constraint = HolonomicConstraint(domain, rigid_springs, 'RigidSprings', 'DerivativeOrder',2);
-    domain = addHolonomicConstraint(domain, hol_trans_constraint);
+    %% Add event: Ground-reaction-force of left-foot reaches Zero. (Holonomic)
+    if strcmp(leg, 'Right')
+        nsf_constraint = domain.Inputs.ConstraintWrench.fLeftSole;
+    else
+        nsf_constraint = domain.Inputs.ConstraintWrench.fRightSole;
+    end
     
+    F_nsf = UnilateralConstraint(domain, nsf_constraint(3), ...
+                        'groundForce', ['f', nsl, 'Sole']);
+    domain = addEvent(domain, F_nsf);
+        
     %% Define outputs!!!
     % Phase Variable - Time
     t = SymVariable('t');
     p = SymVariable('p',[2,1]);
     tau = (t-p(2))/(p(1)-p(2));
-    %     p_hip = p_pel(1) - p_smf(1);
-    %     p_hip.subs(x(1:6), zeros(6,1));
-    %     deltaPhip = linearize(p_hip, x);
-    %     p = SymVariable('p',[2,1]);
-    %     tau = (deltaPhip-p(2))/(p(1)-p(2));
+    %p_hip = p_pel(1) - p_smf(1);
+    %p_hip.subs(x(1:6), zeros(6,1));
+    %deltaPhip = linearize(p_hip, x);
+    %p = SymVariable('p',[2,1]);
+    %tau = (deltaPhip-p(2))/(p(1)-p(2));
     
     %% Relative degree one output: linearized hip velocity
-    %     v_hip = jacobian(deltaPhip, x)*dx;
-    %     y1 = VirtualConstraint(domain, v_hip,'velocity','DesiredType','Constant',...
-    %        'RelativeDegree',1,'OutputLabel',{'vhip'},'PhaseType','StateBased',...
-    %        'PhaseVariable', tau, ...
-    %        'PhaseParams', p, ...
-    %        'Holonomic',false);
-    %     domain = addVirtualConstraint(domain,y1);
+    %v_hip = jacobian(deltaPhip, x)*dx;
+    %y1 = VirtualConstraint(domain, v_hip,'velocity','DesiredType','Constant',...
+    %    'RelativeDegree',1,'OutputLabel',{'vhip'},'PhaseType','StateBased',...
+    %    'PhaseVariable', tau, ...
+    %    'PhaseParams', p, ...
+    %    'Holonomic',false);
+    %domain = addVirtualConstraint(domain,y1);
     
     % RD2 Position
     y = [x('BaseRotX');
@@ -132,25 +132,19 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
          x([leg, 'HipYaw']);
          s_ll; 
          ns_ll;
-         ns_lp;
-         x([nsl, 'HipRoll']);
-         x([nsl, 'HipYaw']);
-         p_heel(3) - p_toe(3)];
+         ns_lp];
     
-    ylbl= {'BaseRoll', ...
-           'BasePitch', ...
-           [leg, 'HipYaw'], ...
+    ylbl= {'BaseRoll',...
+           'BasePitch',...
+           [leg, 'HipYaw'],...
            [leg, 'LegLength'], ...
            [nsl, 'LegLength'], ...
-           [nsl, 'LegPitch'],...
-           [nsl, 'HipRoll'], ... 
-           [nsl, 'HipYaw'], ...
-           'nsf_cartY'};
+           [nsl, 'LegPitch']};
     
     % Assign to domain
     y2 = VirtualConstraint(domain, y, 'position', ...
                            'DesiredType',    'Bezier', ...
-                           'PolyDegree',     6,...
+                           'PolyDegree',     2,...
                            'RelativeDegree', 2, ...
                            'PhaseType',      'TimeBased', ...
                            'PhaseVariable',  tau, ...
@@ -158,7 +152,6 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
                            'OutputLabel',    {ylbl}, ...
                            'Holonomic',      true);
     domain = addVirtualConstraint(domain,y2);
-    
     
 end
 

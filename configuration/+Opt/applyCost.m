@@ -34,9 +34,14 @@ for i = 1:numel(vertices)
             addRunningCost(nlp.Phase(phaseIndex), cot_fun, {'u', 'dx'});
             
         case 'TorqueSquare'
-            u2 = weight.* tovector(norm(u.*[16, 16, 25, 25, 5000, 16, 16, 25, 25, 5000]').^2);
+            u2 = weight.* tovector(norm(u.*[16, 16, 25, 25, 50, 16, 16, 25, 25, 50]').^2);
             u2_fun = SymFunction(['torque_', phase.Name], u2, {u, dx});
             addRunningCost(nlp.Phase(phaseIndex), u2_fun, {'u', 'dx'});
+            
+        case 'SpringSquare'
+            u2 = weight.* ( dx('LeftShinPitch').^2 + dx('LeftAchillesSpring').^2 + dx('RightShinPitch').^2 + dx('RightAchillesSpring').^2 );
+            u2_fun = SymFunction(['spring_movement_', phase.Name], u2, {dx});
+            addRunningCost(nlp.Phase(phaseIndex), u2_fun, {'dx'});
             
         case 'TorqueSquarePlanar'
             u2 = weight.* tovector(norm(u.*[1, 1, 1, 25, 25, 50]').^2);

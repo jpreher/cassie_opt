@@ -32,7 +32,7 @@ function nlp = loadNodeInitialGuess(nlp, logger)
         nlp = updateVariableProp(nlp, 'ddx',  i, 'x0',ddqe(:,i));
         nlp = updateVariableProp(nlp, 'u',  i, 'x0',u(:,i));
         for k=1:numel(input)
-%             nlp = updateVariableProp(nlp, input{k},  i, 'x0',lambda.(input{k})(:,i));
+            nlp = updateVariableProp(nlp, input{k},  i, 'x0',lambda.(input{k})(:,i));
         end
     end
     cstr = fieldnames(plant.HolonomicConstraints);
@@ -40,6 +40,6 @@ function nlp = loadNodeInitialGuess(nlp, logger)
         nlp = updateVariableProp(nlp, ['p' cstr{i}], 'all', 'x0',h.(cstr{i}));
     end
 %     nlp = updateVariableProp(nlp, 'avelocity', 'all', 'x0',param.avelocity(:));
-%     nlp = updateVariableProp(nlp, 'aposition', 'all', 'x0',param.aposition(:));
-%     nlp = updateVariableProp(nlp, 'pposition', 'all', 'x0',param.pposition(:));
+    nlp = updateVariableProp(nlp, 'aposition', 'all', 'x0',param.aposition(:));
+    nlp = updateVariableProp(nlp, 'pposition', 'all', 'x0',param.pposition(:));
 end

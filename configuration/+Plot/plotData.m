@@ -47,10 +47,10 @@ else
 end
 
 export_path = strcat(baseDir, '/export/cassie_plot');
-addpath(export_path);
 if ~exist(export_path,'dir')
     genPlotCode(behavior);
 end
+addpath(export_path);
 
 %% Load Optimization results, whether to show opt results together with sim results
 if strcmp(plotType, 'optsim')
@@ -660,17 +660,18 @@ for k = 1:nVertex
     
     % This is hard-coded, need to fix.
     % Always verify this in 'setupOpt.m'
-    if endsWith(logger(k).plant.Name,'SS')
-        u_index = 1:9;
-    elseif endsWith(logger(k).plant.Name,'FL')
-        u_index = 1:10;
-	elseif endsWith(logger(k).plant.Name,'DS')
-        u_index = [ 1:4, 6:10 ];
-    else
-        disp('problem foo');
-    end
+    u_index = 1:10;
+%     if endsWith(logger(k).plant.Name,'SS')
+%         u_index = 1:9;
+%     elseif endsWith(logger(k).plant.Name,'FL')
+%         u_index = 1:10;
+% 	elseif endsWith(logger(k).plant.Name,'DS')
+%         u_index = [ 1:4, 6:10 ];
+%     else
+%         disp('problem foo');
+%     end
     
-    for i = 1:size(u_index,1)
+    for i = 1:length(u_index)
         subplot(2, 5, u_index(i)); 
         plot(t, u(u_index(i),:), 'Color', mColor); hold on; grid on;
         
