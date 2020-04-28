@@ -23,7 +23,7 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
     right_tp_frame = domain.Joints(getJointIndices(domain, 'RightFootPitch'));
     p_rtp = domain.getCartesianPosition(right_tp_frame)';
     p_rtp = p_rtp.subs(x(1:6), zeros(6,1));
-    
+
     % Derive the leg shapes
     left_com_frame = domain.Joints(getJointIndices(domain, 'LeftHipPitch'));
     p_CoM = domain.getCartesianPosition(left_com_frame)';

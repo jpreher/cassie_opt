@@ -23,11 +23,12 @@ omit_coriolis   = true;
 
    do_export_model = 0;
 do_export_behavior = 0;
-      is_symmetric = 1;
+      is_symmetric = 0;
 
 %%% Stepping (time-based) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % behaviorName = 'stepping_planar';
 behaviorName = 'stepping';
+
     
 %%  Run the associated behavior constructor %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 behavior = loadBehavior(behaviorName, is_symmetric, ...

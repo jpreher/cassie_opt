@@ -36,8 +36,8 @@ fprintf('Compilation took %f minutes.\n', toc(t1)/60);
 %%%% Create a library of walking gaits
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gait Library
-vd_x = 0; %-0.4 : 0.05 : 0.8; % -0.3 : 0.05 : 0.8;
-vd_y = 0.2;
+vd_x = 0.25;%-0.3 : 0.05 : 0.8; %-0.4 : 0.05 : 0.8; % -0.3 : 0.05 : 0.8;
+vd_y = 0;
 
 % Iterate over list
 for i = 1:length(vd_x)
@@ -68,9 +68,8 @@ for i = 1:length(vd_x)
         diary log.txt;
         
         % Run IPOPT
-        options = struct();
-        options.max_iter = 1000;
-        solver = IpoptApplication(nlp, options);
+        options = struct()
+        solver = IpoptApplication(nlp);
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% Run the optimization

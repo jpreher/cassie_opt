@@ -86,14 +86,18 @@ for i = 1:numel(vertices)
             addRunningCost(nlp.Phase(phaseIndex), baseMovFun, {'dx'}, {auxdata});
             
         case 'NSFMovement'
-            aux_data = [vars;0];
-            
-            vd = SymVariable('vd',[length(aux_data),1]);
-            
-            p_nsf = getCartesianPosition(domain, domain.ContactPoints.LeftSole);
+            if isempty(strfind(domain.Name, 'Right'))
+                stanceFoot = 'Left';
+                p_nsf = getCartesianPosition(domain, domain.ContactPoints.LeftSole);
+            else
+                stanceFoot = 'Right';
+                p_nsf = getCartesianPosition(domain, domain.ContactPoints.RightSole);
+            end
             v_nsf = jacobian(p_nsf, x) * dx;
             %v_nsf(3)=[]; %-don't care nsf_velZ
             
+            aux_data = [vars;0];
+            vd = SymVariable('vd',[length(aux_data),1]);
             nsf_vel_norm = tovector(sum((vd*2 - v_nsf).^2));
             nsf_vel_norm_Fun = SymFunction(['NSFMovement_', phase.Name], nsf_vel_norm, {x, dx}, {vd});
             addRunningCost(nlp.Phase(phaseIndex), nsf_vel_norm_Fun, {'x','dx'}, {aux_data});

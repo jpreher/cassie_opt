@@ -13,12 +13,12 @@ function right_impact_constraints(nlp, src, tar, bounds, varargin)
     % (this only affects position peridicity, velocity still applies)
     removeConstraint(nlp,'xDiscreteMapRightImpact');
     
-    % Readding Periodicity
+    % Readding Periodicity (ignoring first 6 coordinates)
     R = plant.R;
     x = plant.States.x;
     xn = plant.States.xn;
     x_diff = R*x-xn;
-    x_map = SymFunction(['xPartialDiscreteMap' plant.Name],x_diff(3:end),{x,xn});
+    x_map = SymFunction(['xPartialDiscreteMap' plant.Name],x_diff(7:end),{x,xn});
     
     addNodeConstraint(nlp, x_map, {'x','xn'}, 'first', 0, 0, 'Linear');
     
