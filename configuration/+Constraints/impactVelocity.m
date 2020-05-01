@@ -36,6 +36,7 @@ else
     vyi_lb = -0.05;
     vyi_ub = +0.05;
 end
+
 addNodeConstraint(nlp, v_foot_fun, {'x','dx'}, 'last', ...
     [vxi_lb, vyi_lb, -0.30], ...
     [vxi_ub, vyi_ub, -0.05],'Nonlinear');

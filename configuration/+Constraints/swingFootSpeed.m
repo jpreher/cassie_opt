@@ -15,9 +15,17 @@ else
     v_foot_fun = SymFunction(['nsf_velocity_',domain.Name], v_foot, {x,dx});
 end
 
+if v_target(2) < 0
+    lby = -0.25 + 3.5*v_target(2);
+    uby = +0.25 + 0.5*v_target(2);
+else
+    lby = -0.25 + 0.5*v_target(2);
+    uby = +0.25 + 3.5*v_target(2);
+end
+
 addNodeConstraint(nlp, v_foot_fun, {'x', 'dx'}, 1:3:nlp.NumNode, ...
-    [-3.5, -0.25 + 1*v_target(2), -2.0], ...
-    [3.5, +0.25 + 3*v_target(2), 2.0], ...
+    [-3.5, lby, -2.0], ...
+    [ 3.5, uby,  2.0], ...
     'Nonlinear');
 
 end

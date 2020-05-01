@@ -36,14 +36,25 @@ fprintf('Compilation took %f minutes.\n', toc(t1)/60);
 %%%% Create a library of walking gaits
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gait Library
-vd_x = 0; %-0.4 : 0.05 : 0.8; % -0.3 : 0.05 : 0.8;
-vd_y = 0.2;
+vd_x = -0.8 : 0.1 : 1.0;
+vd_y = -0.5 : 0.1 : 0.5;
 
 % Iterate over list
 for i = 1:length(vd_x)
+    % Make sure that the optimization always uses the closest y speed in
+    % the initial guess 
+    % (i.e. (-0.5,0.4)->(-0.4,0.4) rather than (-0.5,0.4)->(-0.4,-0.4)
+    flipy = false;
+    if mod(i,2) == 0
+        flipy = true;
+    end
     for j = 1:length(vd_y)
         % Get the new desired velocity
-        vd = [vd_x(i); vd_y(j)];
+        if flipy
+            vd = [vd_x(i); vd_y(length(vd_y)-j+1)];
+        else
+            vd = [vd_x(i); vd_y(j)];
+        end
         show_this = strcat("vd: ", num2str(vd(1)), ", ", num2str(vd(2)));
         display(show_this)
         nlp = feval(strcat(behavior.name, '.Constraints.setupOpt'), behavior, vd);
@@ -58,9 +69,9 @@ for i = 1:length(vd_x)
                 loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(1));
             end
         end
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% Link the NLP problem to a NLP solver
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Log all activities in cmd
         if exist('log.yaml','file')
             delete('log.yaml');
@@ -72,9 +83,9 @@ for i = 1:length(vd_x)
         options.max_iter = 1000;
         solver = IpoptApplication(nlp, options);
         
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% Run the optimization
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         t1 = tic;
         [sol, info] = optimize(solver);
         fprintf('Elapsed time is %f minutes.\n', toc(t1)/60);
@@ -88,9 +99,9 @@ for i = 1:length(vd_x)
         end
         diary off;
         
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%% Check and export the optimization result
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % save the velocity name
         label_append = strcat("v_", num2str(vd(1)), "_", num2str(vd(2)));
         

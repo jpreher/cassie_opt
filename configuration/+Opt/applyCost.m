@@ -87,11 +87,11 @@ for i = 1:numel(vertices)
             
         case 'NSFMovement'
             if isempty(strfind(domain.Name, 'Right'))
-                stanceFoot = 'Left';
-                p_nsf = getCartesianPosition(domain, domain.ContactPoints.LeftSole);
-            else
-                stanceFoot = 'Right';
+                % stanceFoot = 'Left';
                 p_nsf = getCartesianPosition(domain, domain.ContactPoints.RightSole);
+            else
+                % stanceFoot = 'Right';
+                p_nsf = getCartesianPosition(domain, domain.ContactPoints.LeftSole);
             end
             v_nsf = jacobian(p_nsf, x) * dx;
             %v_nsf(3)=[]; %-don't care nsf_velZ

@@ -16,10 +16,14 @@ model_bounds.params.vd = vd;
 ind = behavior.robotModel.getJointIndices('BasePosX');
 model_bounds.states.x.lb(ind)  = -1.5;
 model_bounds.states.x.ub(ind)  =  1.5;
+model_bounds.states.dx.lb(ind)  = -2.5;
+model_bounds.states.dx.ub(ind)  =  2.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosY');
 model_bounds.states.x.lb(ind)  = -1.5;
 model_bounds.states.x.ub(ind)  =  1.5;
+model_bounds.states.dx.lb(ind)  = -1.5;
+model_bounds.states.dx.ub(ind)  =  1.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosZ');
 model_bounds.states.x.lb(ind)  = 0.75; 
@@ -78,8 +82,8 @@ bounds.LeftSS.inputs.Control.u.ub(5) = 0;
 %%% Holonomic Constants %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 bounds.RightSS.params.pRightSole.lb  = zeros(5,1);
 bounds.RightSS.params.pRightSole.ub  = zeros(5,1);
-bounds.LeftSS.params.pLeftSole.lb  = [-0.5, 0,   0, 0, 0];
-bounds.LeftSS.params.pLeftSole.ub  = [+0.5, 0.5, 0, 0, 0];
+bounds.LeftSS.params.pLeftSole.lb  = [-1.5, 0,   0, 0, 0];
+bounds.LeftSS.params.pLeftSole.ub  = [+1.5, 1.5, 0, 0, 0];
 
 %%% Constraint Wrench Forces %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 bounds.RightSS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -250];
