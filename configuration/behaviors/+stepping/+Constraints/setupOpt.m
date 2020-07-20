@@ -108,32 +108,54 @@ bounds.LeftSS.params.pposition.lb = [bounds.LeftSS.time.tf.lb, bounds.LeftSS.tim
 bounds.LeftSS.params.pposition.ub = [bounds.LeftSS.time.tf.ub, bounds.LeftSS.time.t0.ub];
 
 %% Setup the NLP
-behavior.vertices.r_SS.UserNlpConstraint  = @constraintsSS; 
-behavior.vertices.l_SS.UserNlpConstraint  = @constraintsSS; 
-behavior.edges.l_impact.UserNlpConstraint = @left_impact_constraints; 
-behavior.edges.r_impact.UserNlpConstraint = @right_impact_constraints;
-
-num_grid.RightSS = 14;
-num_grid.LeftSS = 14;
+if isfield(behavior.vertices, 'l_SS')
+    behavior.vertices.r_SS.UserNlpConstraint  = @constraintsSS; 
+    behavior.vertices.l_SS.UserNlpConstraint  = @constraintsSS; 
+    behavior.edges.l_impact.UserNlpConstraint = @left_impact_constraints; 
+    behavior.edges.r_impact.UserNlpConstraint = @right_impact_constraints;
+    num_grid.RightSS = 14;
+    num_grid.LeftSS = 14;   
+else
+    behavior.vertices.r_SS.UserNlpConstraint  = @constraintsSS; 
+    behavior.edges.l_impact.UserNlpConstraint = @left_impact_relabel_constraints; 
+    num_grid.RightSS = 14;
+    
+end
+    
 nlp = HybridTrajectoryOptimization(behavior.name, behavior.hybridSystem, num_grid, ...
                                    [], 'EqualityConstraintBoundary', 1e-5);
-
 nlp.configure(bounds);
 
 %% Add a cost function (or lots)
 % % Choose the cost type
-weight = 1e1;
-CostType = {'BaseMovement', 'BaseMovement'}; 
-nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+if isfield(behavior.vertices, 'l_SS')
+    weight = 1e1;
+    CostType = {'BaseMovement', 'BaseMovement'}; 
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
-weight= 1e-2;
-CostType = {'TorqueSquare', 'TorqueSquare'}; 
-nlp = Opt.applyCost(behavior, nlp, CostType, weight);
+    weight= 1e-2;
+    CostType = {'TorqueSquare', 'TorqueSquare'}; 
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight);
+    
+    weight= 1e2;
+    CostType = {'NSFMovement', 'NSFMovement'};
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+else
+    weight = 1e1;
+    CostType = {'BaseMovement'};
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+    
+    weight= 1e-2;
+    CostType = {'TorqueSquare'};
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight);
+    
+    weight= 1e2;
+    CostType = {'NSFMovement'};
+    nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+end
 
-weight= 1e2;
-CostType = {'NSFMovement', 'NSFMovement'};
-nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
-
+    
+    
 nlp.update;
 
 end
