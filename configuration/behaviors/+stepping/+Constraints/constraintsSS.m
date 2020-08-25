@@ -20,4 +20,7 @@ Constraints.stepWidth(bounds,nlp, stanceFoot);
 Constraints.swingFootSpeed(bounds, nlp, stanceFoot);
 Constraints.walkingSpeed(bounds, nlp);
 
+
+
+
 end

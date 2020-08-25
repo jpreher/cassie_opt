@@ -36,13 +36,13 @@ fprintf('Compilation took %f minutes.\n', toc(t1)/60);
 %%%% Create a library of walking gaits
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gait Library
-vd_x = -0.8 : 0.1 : 1.0;
-vd_y = -0.5 : 0.1 : 0.5;
+vd_x = -0.5 : 0.1 : 1.0; %-0.4 : 0.1 : 0.6; %-0.8 : 0.1 : 1.0;
+vd_y = -0.4 : 0.1 : 0.4;% : 0.1 : 0.4; %-0.1 : 0.1 : 0.1; %-0.2 : 0.1 : 0.2; %-0.5 : 0.1 : 0.5;
 
 % Iterate over list
 for i = 1:length(vd_x)
     % Make sure that the optimization always uses the closest y speed in
-    % the initial guess 
+    % the initial guess when wrapping to new x speed
     % (i.e. (-0.5,0.4)->(-0.4,0.4) rather than (-0.5,0.4)->(-0.4,-0.4)
     flipy = false;
     if mod(i,2) == 0
@@ -61,10 +61,18 @@ for i = 1:length(vd_x)
         
         if exist('logger','var') == 1
             loadNodeInitialGuess(nlp.Phase(1), logger(1));
-            if length(logger) > 1
+            if length(logger) > 1 && length(logger) < 3
                 loadNodeInitialGuess(nlp.Phase(3), logger(2));
                 loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(2));
                 loadEdgeInitialGuess(nlp.Phase(4), logger(2), logger(1));
+            elseif length(logger) > 2
+                loadNodeInitialGuess(nlp.Phase(3), logger(2));
+                loadNodeInitialGuess(nlp.Phase(5), logger(3));
+                loadNodeInitialGuess(nlp.Phase(7), logger(4));
+                loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(2));
+                loadEdgeInitialGuess(nlp.Phase(4), logger(2), logger(3));
+                loadEdgeInitialGuess(nlp.Phase(6), logger(3), logger(4));
+                loadEdgeInitialGuess(nlp.Phase(8), logger(4), logger(1));
             else
                 loadEdgeInitialGuess(nlp.Phase(2), logger(1), logger(1));
             end
@@ -80,7 +88,7 @@ for i = 1:length(vd_x)
         
         % Run IPOPT
         options = struct();
-        options.max_iter = 1000;
+        options.max_iter = 500;
         solver = IpoptApplication(nlp, options);
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

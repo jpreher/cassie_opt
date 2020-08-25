@@ -26,28 +26,40 @@ model_bounds.states.dx.lb(ind)  = -1.5;
 model_bounds.states.dx.ub(ind)  =  1.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosZ');
-model_bounds.states.x.lb(ind)  = 0.75; 
-model_bounds.states.x.ub(ind)  = 0.85;
-model_bounds.states.dx.lb(ind) = -1.0;   
-model_bounds.states.dx.ub(ind) =  1.0;   
+model_bounds.states.x.lb(ind)  = 0.80; 
+model_bounds.states.x.ub(ind)  = 0.90;
+model_bounds.states.dx.lb(ind) = -0.5;   
+model_bounds.states.dx.ub(ind) =  0.5;   
 
 ind = behavior.robotModel.getJointIndices('BaseRotX');
-model_bounds.states.x.lb(ind)  = -0.15;
-model_bounds.states.x.ub(ind)  =  0.15;
-model_bounds.states.dx.lb(ind)  = -0.5;
-model_bounds.states.dx.ub(ind)  =  0.5;
+model_bounds.states.x.lb(ind)  = -0.05;
+model_bounds.states.x.ub(ind)  =  0.05;
+model_bounds.states.dx.lb(ind)  = -0.05;
+model_bounds.states.dx.ub(ind)  =  0.05;
 
 ind = behavior.robotModel.getJointIndices('BaseRotY');
 model_bounds.states.x.lb(ind)  = -0.1;
 model_bounds.states.x.ub(ind)  =  0.1;
-model_bounds.states.dx.lb(ind)  = -0.5;
-model_bounds.states.dx.ub(ind)  =  0.5;
+model_bounds.states.dx.lb(ind)  = -0.05;
+model_bounds.states.dx.ub(ind)  =  0.05;
 
 ind = behavior.robotModel.getJointIndices('BaseRotZ');
 model_bounds.states.x.lb(ind)  = -0.1;
 model_bounds.states.x.ub(ind)  =  0.1;
 model_bounds.states.dx.lb(ind)  = -0.5;
 model_bounds.states.dx.ub(ind)  =  0.5;
+
+ind = behavior.robotModel.getJointIndices('LeftHipYaw');
+model_bounds.states.x.lb(ind)  = -0.05;
+model_bounds.states.x.ub(ind)  =  0.05;
+model_bounds.states.dx.lb(ind)  = -0.1;
+model_bounds.states.dx.ub(ind)  =  0.1;
+
+ind = behavior.robotModel.getJointIndices('RightHipYaw');
+model_bounds.states.x.lb(ind)  = -0.05;
+model_bounds.states.x.ub(ind)  =  0.05;
+model_bounds.states.dx.lb(ind)  = -0.1;
+model_bounds.states.dx.ub(ind)  =  0.1;
 
 model_bounds.params.pSpringTransmissions.lb = zeros(2,1);
 model_bounds.params.pSpringTransmissions.ub = zeros(2,1);
@@ -120,17 +132,30 @@ nlp = HybridTrajectoryOptimization(behavior.name, behavior.hybridSystem, num_gri
 
 nlp.configure(bounds);
 
+% Add heuristic constraint on grf in middle of step
+midnode = floor(nlp.Phase(1).NumNode/2);
+lb = nlp.Phase(1).OptVarTable.fRightSole(midnode).LowerBound;
+lb(3) = 325;
+ub = nlp.Phase(1).OptVarTable.fRightSole(midnode).UpperBound;
+nlp.Phase(1).OptVarTable.fRightSole(midnode).setBoundary(lb,ub);
+
+midnode = floor(nlp.Phase(3).NumNode/2);
+lb = nlp.Phase(3).OptVarTable.fLeftSole(midnode).LowerBound;
+lb(3) = 325;
+ub = nlp.Phase(3).OptVarTable.fLeftSole(midnode).UpperBound;
+nlp.Phase(3).OptVarTable.fLeftSole(midnode).setBoundary(lb,ub);
+
 %% Add a cost function (or lots)
 % % Choose the cost type
-weight = 1e1;
+weight = 1e2;
 CostType = {'BaseMovement', 'BaseMovement'}; 
 nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
-weight= 1e-2;
+weight= 1e-3;
 CostType = {'TorqueSquare', 'TorqueSquare'}; 
 nlp = Opt.applyCost(behavior, nlp, CostType, weight);
 
-weight= 1e2;
+weight= 5e2;
 CostType = {'NSFMovement', 'NSFMovement'};
 nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 

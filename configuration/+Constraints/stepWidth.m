@@ -11,15 +11,16 @@ constraint_func = SymFunction(['step_distance_',domain.Name], constraint, {x});
 
 if strcmp(stanceFoot, 'Left')
     lb = [min(v_target(1)*T/4, v_target(1)*T);
-          0.12];
+          0.20 + min(-v_target(2)*T/4, -v_target(2)*T)];
     ub = [max(v_target(1)*T/4, v_target(1)*T);
           1.00];
 else
     lb = [min(- v_target(1)*T/4, - v_target(1)*T);
-          0.12];
+          0.20 + min(v_target(2)*T/4, v_target(2)*T)];
     ub = [max(- v_target(1)*T/4, - v_target(1)*T);
           1.00];
 end
+
 
 addNodeConstraint(nlp, constraint_func, {'x'}, 'first', lb, ub, 'NonLinear');
 

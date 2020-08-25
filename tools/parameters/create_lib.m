@@ -2,11 +2,11 @@ function [lib] = create_lib(paths)
     if nargin < 1
         paths = '.';
     end
-    list = dir(strcat(paths,'/params/stepping_v4'));
+    list = dir(strcat(paths,'/params/stepping'));
     lib = {struct()};
 
     for i = 3:length(list)
-        load(strcat(pwd,'/params/stepping_v4/', list(i).name, '/optData.mat'));
+        load(strcat(pwd,'/params/stepping/', list(i).name, '/optData.mat'));
         params = data.params{1,1};
         full_name = strsplit(list(i).name,'_');
         
@@ -59,22 +59,17 @@ end
 
 function [a_v, a_ddq, a_f] = get_logger_fits(log)
     a_v = [...
-        get_a_fit( log.flow.t, 6,  log.flow.states.dx(1,:));
+        get_a_fit( log.flow.t, 6,  log.flow.states.dx(1,:) );
         get_a_fit( log.flow.t, 6,  log.flow.states.dx(2,:) )];
     a_ddq = [];
+    a_f = [];
     for i = 1:length(log.flow.states.x(:,1))
         a_ddq = [a_ddq;
             get_a_fit( log.flow.t, 6,  log.flow.states.ddx(i,:) )];
-        a_f = [a_f;
-            get_a_fit( log.flow.t, 6,  log.flow.states.ddx(i,:) )]; % TODO HERE!
+%         a_f = [a_f;
+%             get_a_fit( log.flow.t, 6,  log.flow.states.ddx(i,:) )]; % TODO HERE!
     end
+    a_f = [];
 end
-
-
-
-
-
-
-
 
 

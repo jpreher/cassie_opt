@@ -6,12 +6,18 @@ domain = nlp.Plant;
 domain.VirtualConstraints.position.imposeNLPConstraint(nlp, [bounds.position.kp, bounds.position.kd], [1, 1]);
 
 % All other constraints
-Constraints.tauSS(nlp, true, false);
-Constraints.nsfYaw(bounds,nlp);
-Constraints.nsfPitch(bounds,nlp);
-Constraints.impactVelocity(bounds, nlp);
-Constraints.stepClearance(bounds,nlp);
-Constraints.stepWidth(bounds,nlp);
-Constraints.swingFootSpeed(bounds, nlp, 'Right');
+if isempty(strfind(domain.Name, 'Right'))
+    stanceFoot = 'Left';
+else
+    stanceFoot = 'Right';
+end
+Constraints.tauSS(nlp, true, true);
+Constraints.nsfYaw(bounds,nlp, stanceFoot);
+Constraints.nsfPitch(bounds,nlp, stanceFoot);
+Constraints.impactVelocity(bounds, nlp, stanceFoot);
+Constraints.stepClearance(bounds,nlp, stanceFoot);
+Constraints.stepWidth(bounds,nlp, stanceFoot);
+Constraints.swingFootSpeed(bounds, nlp, stanceFoot);
+Constraints.walkingSpeed(bounds, nlp);
 
 end
