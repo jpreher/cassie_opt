@@ -81,7 +81,7 @@ for i = 1:numel(vertices)
             
             vd = SymVariable('vd',[length(auxdata),1]);
             
-            baseMov = weight.* tovector(sum((vd - dx(qbIndices)).^2));
+            baseMov = tovector(sum((weight.*(vd - dx(qbIndices))).^2));
             baseMovFun = SymFunction(['BaseMovement_', phase.Name], baseMov, {dx}, {vd});
             addRunningCost(nlp.Phase(phaseIndex), baseMovFun, {'dx'}, {auxdata});
             
@@ -96,9 +96,10 @@ for i = 1:numel(vertices)
             v_nsf = jacobian(p_nsf, x) * dx;
             %v_nsf(3)=[]; %-don't care nsf_velZ
             
+            T = 0.4;
             aux_data = [vars;0];
             vd = SymVariable('vd',[length(aux_data),1]);
-            nsf_vel_norm = tovector(sum((vd*2 - v_nsf).^2));
+            nsf_vel_norm = tovector(sum(((vd*2/T - v_nsf)).^2));
             nsf_vel_norm_Fun = SymFunction(['NSFMovement_', phase.Name], nsf_vel_norm, {x, dx}, {vd});
             addRunningCost(nlp.Phase(phaseIndex), nsf_vel_norm_Fun, {'x','dx'}, {aux_data});
             
@@ -130,7 +131,25 @@ for i = 1:numel(vertices)
             p_x = p_nsf(1).^2;
             p_x_Fun = SymFunction(['NSF_x_', phase.Name], p_x*weight, {x});
             addRunningCost(nlp.Phase(phaseIndex), p_x_Fun, {'x'});
-            
+        case 'Orientation'
+            orientation_fun = SymFunction(['orientation_center_', phase.Name], weight(1)*(x(4)).^2 + weight(2)*(x(5)).^2 + weight(3)*(x(6)).^2, {x});
+            addRunningCost(nlp.Phase(phaseIndex), orientation_fun, {'x'});
+        case 'StanceKneeSpeed'
+            if isempty(strfind(domain.Name, 'Right'))
+                stanceKnee = dx('RightKneePitch');
+            else
+                stanceKnee = dx('LeftKneePitch');
+            end
+            stanceKneeSpeed_fun = SymFunction(['stance_knee_speed_', phase.Name], weight * stanceKnee.^2, {dx});
+            addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'dx'});
+        case 'StanceMoment'
+            if isempty(strfind(domain.Name, 'Right'))
+                
+            else
+                
+            end
+            stanceKneeSpeed_fun = SymFunction(['stance_knee_speed_', phase.Name], weight * stanceKnee.^2, {dx});
+            addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'dx'});
     end
 end
 

@@ -1,0 +1,29 @@
+# Custom options for IPOPT
+
+hessian_approximation limited-memory
+max_iter 1000
+tol 1e-3
+bound_frac 1e-6
+bound_push  1e-6
+dual_inf_tol  1e-4
+constr_viol_tol  1e-4
+compl_inf_tol  1e-4
+mu_strategy adaptive
+#linear_solver "ma57"
+linear_solver "ma27"
+
+print_timing_statistics yes
+#print_info_string yes
+
+ma57_automatic_scaling yes
+ma57_pre_alloc 2
+
+nlp_lower_bound_inf -1e6
+nlp_upper_bound_inf 1e6
+limited_memory_update_type "bfgs"
+limited_memory_max_history 15
+acceptable_dual_inf_tol  1e-4
+acceptable_constr_viol_tol  1e-4
+acceptable_compl_inf_tol  1e-4
+acceptable_tol  1e-4
+

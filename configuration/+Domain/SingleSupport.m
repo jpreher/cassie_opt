@@ -42,7 +42,6 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
     left_legLength = eval_math_fun('Simplify', left_legLength);
     left_legLength = eval_math_fun('Chop', left_legLength);
     left_legLength = sqrt(left_legLength);
-
     
     right_com_frame = domain.Joints(getJointIndices(domain, 'RightHipPitch'));
     p_CoM = domain.getCartesianPosition(right_com_frame)';

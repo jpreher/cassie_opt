@@ -40,11 +40,11 @@ if nargin < 5
 end
 
 % Additional plotting functions
-if ispc
+% if ispc
     baseDir = pwd;
-else
-    baseDir = ros_resolve_local_url('package://cassie_opt/matlab/');
-end
+% else
+%     baseDir = ros_resolve_local_url('package://cassie_opt/matlab/');
+% end
 
 export_path = strcat(baseDir, '/export/cassie_plot');
 if ~exist(export_path,'dir')

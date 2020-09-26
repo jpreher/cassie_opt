@@ -11,21 +11,22 @@
 %   have the system actually swap legs. For optimization, set to "true".
 %
 % Author: Jenna Reher (jreher@caltech)    
-%         Wenlong Ma (wma@caltech)
+%         Wenlong Ma (wma@caltech)        
 % ________________________________________
+frost_addpath;
 addpath(genpath('tools'));
 addpath(genpath('simulator'));
 addpath('modules/cassie_description/MATLAB');
 
 %%% Control the symbolic expression export %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-delay_coriolis  = false;
+delay_coriolis  = true;
 omit_coriolis   = false;
 
    do_export_model = 0;
 do_export_behavior = 0;
       is_symmetric = 0;
 
-%%% Stepping (time-based) %%%%%%%%%%%%%%%%%%%%%%%%%%%   %%%%%%%%%%%%%%%%%%%%%%
+%%% Stepping (time-based) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % behaviorName = 'stepping_planar';
 behaviorName = 'stepping';
 % behaviorName = 'walking';

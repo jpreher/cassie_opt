@@ -12,54 +12,55 @@ import([behavior.name, '.Constraints.*']);
 % Modify model boundaries
 model_bounds = behavior.robotModel.getLimits();
 model_bounds.params.vd = vd;
+model_bounds.params.T = 0.40;
 
 ind = behavior.robotModel.getJointIndices('BasePosX');
-model_bounds.states.x.lb(ind)  = -1.5;
-model_bounds.states.x.ub(ind)  =  1.5;
-model_bounds.states.dx.lb(ind)  = -2.5;
-model_bounds.states.dx.ub(ind)  =  2.5;
+model_bounds.states.x.lb(ind)  = -2.5;
+model_bounds.states.x.ub(ind)  =  2.5;
+model_bounds.states.dx.lb(ind)  = -4.5;
+model_bounds.states.dx.ub(ind)  =  4.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosY');
-model_bounds.states.x.lb(ind)  = -1.5;
-model_bounds.states.x.ub(ind)  =  1.5;
-model_bounds.states.dx.lb(ind)  = -1.5;
-model_bounds.states.dx.ub(ind)  =  1.5;
+model_bounds.states.x.lb(ind)  = -2.5;
+model_bounds.states.x.ub(ind)  =  2.5;
+model_bounds.states.dx.lb(ind)  = -4.5;
+model_bounds.states.dx.ub(ind)  =  4.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosZ');
 model_bounds.states.x.lb(ind)  = 0.80; 
-model_bounds.states.x.ub(ind)  = 0.90;
-model_bounds.states.dx.lb(ind) = -0.5;   
-model_bounds.states.dx.ub(ind) =  0.5;   
+model_bounds.states.x.ub(ind)  = 0.88;
+model_bounds.states.dx.lb(ind) = -0.75;   
+model_bounds.states.dx.ub(ind) =  0.75;   
 
 ind = behavior.robotModel.getJointIndices('BaseRotX');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.05;
-model_bounds.states.dx.ub(ind)  =  0.05;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 ind = behavior.robotModel.getJointIndices('BaseRotY');
-model_bounds.states.x.lb(ind)  = -0.1;
-model_bounds.states.x.ub(ind)  =  0.1;
-model_bounds.states.dx.lb(ind)  = -0.05;
-model_bounds.states.dx.ub(ind)  =  0.05;
+model_bounds.states.x.lb(ind)  = 0;
+model_bounds.states.x.ub(ind)  = 0.1;
+model_bounds.states.dx.lb(ind)  = -0.25;
+model_bounds.states.dx.ub(ind)  =  0.25;
 
 ind = behavior.robotModel.getJointIndices('BaseRotZ');
-model_bounds.states.x.lb(ind)  = -0.1;
-model_bounds.states.x.ub(ind)  =  0.1;
-model_bounds.states.dx.lb(ind)  = -0.5;
-model_bounds.states.dx.ub(ind)  =  0.5;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0;
+model_bounds.states.dx.ub(ind)  =  0;
 
 ind = behavior.robotModel.getJointIndices('LeftHipYaw');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.1;
-model_bounds.states.dx.ub(ind)  =  0.1;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 ind = behavior.robotModel.getJointIndices('RightHipYaw');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.1;
-model_bounds.states.dx.ub(ind)  =  0.1;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 model_bounds.params.pSpringTransmissions.lb = zeros(2,1);
 model_bounds.params.pSpringTransmissions.ub = zeros(2,1);
@@ -71,8 +72,8 @@ model_bounds.inputs.ConstraintWrench.fSpringTransmissions.ub =  10000;
 model_bounds.inputs.ConstraintWrench.fRigidSprings.lb = -10000;
 model_bounds.inputs.ConstraintWrench.fRigidSprings.ub =  10000;
 
-model_bounds.params.aposition.lb = -3;
-model_bounds.params.aposition.ub =  3;
+model_bounds.params.aposition.lb = -5;
+model_bounds.params.aposition.ub =  5;
 
 model_bounds.velocity.ep = 10;
 model_bounds.position.kp = 400;
@@ -106,8 +107,8 @@ bounds.LeftSS.inputs.ConstraintWrench.fLeftSole.ub  = [+150, +150, 750, +250, +2
 %%% Time %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 bounds.RightSS.time.t0.lb = 0;
 bounds.RightSS.time.t0.ub = 0;
-bounds.RightSS.time.tf.lb = 0.40;
-bounds.RightSS.time.tf.ub = 0.40;
+bounds.RightSS.time.tf.lb = model_bounds.params.T;
+bounds.RightSS.time.tf.ub = model_bounds.params.T;
 
 bounds.LeftSS.time.t0.lb = bounds.RightSS.time.tf.lb;
 bounds.LeftSS.time.t0.ub = bounds.RightSS.time.tf.ub;
@@ -141,33 +142,38 @@ nlp.configure(bounds);
 % Add heuristic constraint on grf in middle of step
 midnode = floor(nlp.Phase(1).NumNode/2);
 lb = nlp.Phase(1).OptVarTable.fRightSole(midnode).LowerBound;
-lb(3) = 325;
+lb(3) = 300;
 ub = nlp.Phase(1).OptVarTable.fRightSole(midnode).UpperBound;
 nlp.Phase(1).OptVarTable.fRightSole(midnode).setBoundary(lb,ub);
 
 midnode = floor(nlp.Phase(3).NumNode/2);
 lb = nlp.Phase(3).OptVarTable.fLeftSole(midnode).LowerBound;
-lb(3) = 325;
+lb(3) = 300;
 ub = nlp.Phase(3).OptVarTable.fLeftSole(midnode).UpperBound;
 nlp.Phase(3).OptVarTable.fLeftSole(midnode).setBoundary(lb,ub);
+
 
 %% Add a cost function (or lots)
 % % Choose the cost type
 
 if isfield(behavior.vertices, 'l_SS')
-    weight = 1e1;
-    CostType = {'BaseMovement', 'BaseMovement'}; 
+%     weight = [1e-1; 0; 1e-2; 20; 10; 20];
+%     CostType = {'BaseMovement', 'BaseMovement'}; 
+%     nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+
+    weight = [20; 1; 30];
+    CostType = {'Orientation', 'Orientation'};
     nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
-    weight= 1e-2;
+    weight= 1e-4;
     CostType = {'TorqueSquare', 'TorqueSquare'}; 
     nlp = Opt.applyCost(behavior, nlp, CostType, weight);
     
-    weight= 1e2;
-    CostType = {'NSFMovement', 'NSFMovement'};
-    nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+%     weight= 1e-4;
+%     CostType = {'NSFMovement', 'NSFMovement'};
+%     nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 else
-    weight = 1e1;
+    weight = 5e1;
     CostType = {'BaseMovement'};
     nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
     

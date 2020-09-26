@@ -1,3 +1,6 @@
 [submodule "modules/cassie_description"]
 	path = modules/cassie_description
 	url = https://github.com/jpreher/cassie_description.git
+[submodule "modules/C-Frost"]
+	path = modules/C-Frost
+	url = https://github.com/UMich-BipedLab/C-Frost.git

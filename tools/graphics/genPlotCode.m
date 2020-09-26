@@ -14,11 +14,11 @@ x = obj.States.x;
 dx = obj.States.dx;
 
 %% Added these for later use to 'cassie_hardware'.
-if ispc
+% if ispc
     baseDir = pwd;
-else
-    baseDir = ros_resolve_local_url('package://cassie_opt/matlab/');
-end
+% else
+%     baseDir = ros_resolve_local_url('package://cassie_opt/matlab/');
+% end
 export_path = strcat(baseDir, '/export/cassie_plot');
 if ~exist(export_path,'dir')
     mkdir(char(export_path));
