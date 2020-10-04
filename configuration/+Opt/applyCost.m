@@ -144,12 +144,17 @@ for i = 1:numel(vertices)
             addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'dx'});
         case 'StanceMoment'
             if isempty(strfind(domain.Name, 'Right'))
-                
-            else
-                
+                F  = behavior.vertices.l_SS.HolonomicConstraints.LeftSole.Input;
+                stance_moment = SymVariable('fSole', [5,1]);
+                stanceKneeSpeed_fun = SymFunction(['stance_moment_', phase.Name], weight * F(5), {F});
+                addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'fLeftSole'});
+            else                
+                F  = behavior.vertices.r_SS.HolonomicConstraints.RightSole.Input;
+                stance_moment = SymVariable('fSole', [5,1]);
+                stanceKneeSpeed_fun = SymFunction(['stance_moment_', phase.Name], weight * F(5), {F});
+                addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'fRightSole'});
             end
-            stanceKneeSpeed_fun = SymFunction(['stance_knee_speed_', phase.Name], weight * stanceKnee.^2, {dx});
-            addRunningCost(nlp.Phase(phaseIndex), stanceKneeSpeed_fun, {'dx'});
+            
     end
 end
 
