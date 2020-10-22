@@ -12,7 +12,7 @@ import([behavior.name, '.Constraints.*']);
 % Modify model boundaries
 model_bounds = behavior.robotModel.getLimits();
 model_bounds.params.vd = vd;
-model_bounds.params.T = 0.35;
+model_bounds.params.T = 0.40;
 
 ind = behavior.robotModel.getJointIndices('BasePosX');
 model_bounds.states.x.lb(ind)  = -2.5;
@@ -45,22 +45,22 @@ model_bounds.states.dx.lb(ind)  = -0.25;
 model_bounds.states.dx.ub(ind)  =  0.25;
 
 ind = behavior.robotModel.getJointIndices('BaseRotZ');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.25;
-model_bounds.states.dx.ub(ind)  =  0.25;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 ind = behavior.robotModel.getJointIndices('LeftHipYaw');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.25;
-model_bounds.states.dx.ub(ind)  =  0.25;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 ind = behavior.robotModel.getJointIndices('RightHipYaw');
-model_bounds.states.x.lb(ind)  = -0.05;
-model_bounds.states.x.ub(ind)  =  0.05;
-model_bounds.states.dx.lb(ind)  = -0.25;
-model_bounds.states.dx.ub(ind)  =  0.25;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 model_bounds.params.pSpringTransmissions.lb = zeros(2,1);
 model_bounds.params.pSpringTransmissions.ub = zeros(2,1);
@@ -169,9 +169,9 @@ if isfield(behavior.vertices, 'l_SS')
     CostType = {'TorqueSquare', 'TorqueSquare'}; 
     nlp = Opt.applyCost(behavior, nlp, CostType, weight);
     
-    weight= 1e-3;
-    CostType = {'StanceMoment', 'StanceMoment'}; 
-    nlp = Opt.applyCost(behavior, nlp, CostType, weight);
+%     weight= 1e-3;
+%     CostType = {'StanceMoment', 'StanceMoment'}; 
+%     nlp = Opt.applyCost(behavior, nlp, CostType, weight);
     
 %     weight= 1e-4;
 %     CostType = {'NSFMovement', 'NSFMovement'};

@@ -14,7 +14,7 @@ end
 Constraints.tauSS(nlp, true, false);
 Constraints.nsfYaw(bounds,nlp, stanceFoot);
 Constraints.nsfPitch(bounds,nlp, stanceFoot);
-Constraints.impactVelocity(bounds, nlp, stanceFoot);
+% Constraints.impactVelocity(bounds, nlp, stanceFoot);
 Constraints.stepClearance(bounds,nlp, stanceFoot);
 Constraints.stepWidth(bounds,nlp, stanceFoot);
 Constraints.swingFootSpeed(bounds, nlp, stanceFoot);

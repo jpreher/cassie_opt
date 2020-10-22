@@ -12,46 +12,55 @@ import([behavior.name, '.Constraints.*']);
 % Modify model boundaries
 model_bounds = behavior.robotModel.getLimits();
 model_bounds.params.vd = vd;
-
-% Modify model boundaries
-model_bounds = behavior.robotModel.getLimits();
-model_bounds.params.vd = vd;
+model_bounds.params.T = 0.40;
 
 ind = behavior.robotModel.getJointIndices('BasePosX');
-model_bounds.states.x.lb(ind)  = -1.5;
-model_bounds.states.x.ub(ind)  =  1.5;
-model_bounds.states.dx.lb(ind)  = -2.5;
-model_bounds.states.dx.ub(ind)  =  2.5;
+model_bounds.states.x.lb(ind)  = -2.5;
+model_bounds.states.x.ub(ind)  =  2.5;
+model_bounds.states.dx.lb(ind)  = -4.5;
+model_bounds.states.dx.ub(ind)  =  4.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosY');
-model_bounds.states.x.lb(ind)  = -1.5;
-model_bounds.states.x.ub(ind)  =  1.5;
-model_bounds.states.dx.lb(ind)  = -1.5;
-model_bounds.states.dx.ub(ind)  =  1.5;
+model_bounds.states.x.lb(ind)  = -2.5;
+model_bounds.states.x.ub(ind)  =  2.5;
+model_bounds.states.dx.lb(ind)  = -4.5;
+model_bounds.states.dx.ub(ind)  =  4.5;
 
 ind = behavior.robotModel.getJointIndices('BasePosZ');
 model_bounds.states.x.lb(ind)  = 0.80; 
-model_bounds.states.x.ub(ind)  = 0.90;
-model_bounds.states.dx.lb(ind) = -0.5;   
-model_bounds.states.dx.ub(ind) =  0.5;   
+model_bounds.states.x.ub(ind)  = 0.88;
+model_bounds.states.dx.lb(ind) = -0.75;   
+model_bounds.states.dx.ub(ind) =  0.75;   
 
 ind = behavior.robotModel.getJointIndices('BaseRotX');
-model_bounds.states.x.lb(ind)  = -0.15;
-model_bounds.states.x.ub(ind)  =  0.15;
-model_bounds.states.dx.lb(ind)  = -0.25;
-model_bounds.states.dx.ub(ind)  =  0.25;
+model_bounds.states.x.lb(ind)  = -0.05;
+model_bounds.states.x.ub(ind)  =  0.05;
+model_bounds.states.dx.lb(ind)  = -0.2;
+model_bounds.states.dx.ub(ind)  =  0.2;
 
 ind = behavior.robotModel.getJointIndices('BaseRotY');
-model_bounds.states.x.lb(ind)  = -0.1;
-model_bounds.states.x.ub(ind)  =  0.1;
+model_bounds.states.x.lb(ind)  = 0;
+model_bounds.states.x.ub(ind)  = 0.1;
 model_bounds.states.dx.lb(ind)  = -0.25;
 model_bounds.states.dx.ub(ind)  =  0.25;
 
 ind = behavior.robotModel.getJointIndices('BaseRotZ');
-model_bounds.states.x.lb(ind)  = -0.1;
-model_bounds.states.x.ub(ind)  =  0.1;
-model_bounds.states.dx.lb(ind)  = -0.25;
-model_bounds.states.dx.ub(ind)  =  0.25;
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
+
+ind = behavior.robotModel.getJointIndices('LeftHipYaw');
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
+
+ind = behavior.robotModel.getJointIndices('RightHipYaw');
+model_bounds.states.x.lb(ind)  = -0.0;
+model_bounds.states.x.ub(ind)  =  0.0;
+model_bounds.states.dx.lb(ind)  = -0.0;
+model_bounds.states.dx.ub(ind)  =  0.0;
 
 model_bounds.params.pSpringTransmissions.lb = zeros(2,1);
 model_bounds.params.pSpringTransmissions.ub = zeros(2,1);
@@ -169,28 +178,28 @@ behavior.edges.l_impact.UserNlpConstraint = @left_impact_constraints;
 behavior.edges.r_lift.UserNlpConstraint   = @right_lift_constraints;
 behavior.edges.r_impact.UserNlpConstraint = @right_impact_constraints;
 
-num_grid.RightDS = 12;
-num_grid.RightSS = 16;
-num_grid.LeftDS = 12;
-num_grid.LeftSS = 16;
+num_grid.RightDS = 10;
+num_grid.RightSS = 12;
+num_grid.LeftDS = 10;
+num_grid.LeftSS = 12;
 nlp = HybridTrajectoryOptimization(behavior.name, behavior.hybridSystem, num_grid, ...
                                    [], 'EqualityConstraintBoundary', 1e-5);
 
 nlp.configure(bounds);
 
 %% Add a cost function (or lots)
-% % Choose the cost type
-weight = 1e1;
-CostType = {'BaseMovement', 'BaseMovement', 'BaseMovement', 'BaseMovement'}; 
-nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+% % % Choose the cost type
+% weight = 1e1;
+% CostType = {'BaseMovement', 'BaseMovement', 'BaseMovement', 'BaseMovement'}; 
+% nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
-weight= 1e-2;
+weight= 1e-4;
 CostType = {'TorqueSquare', 'TorqueSquare', 'TorqueSquare', 'TorqueSquare'}; 
 nlp = Opt.applyCost(behavior, nlp, CostType, weight);
 
-weight= 1e2;
-CostType = {'NSFMovement', 'NSFMovement', 'NSFMovement', 'NSFMovement'};
-nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+% weight= 1e2;
+% CostType = {'NSFMovement', 'NSFMovement', 'NSFMovement', 'NSFMovement'};
+% nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
 nlp.update;
 
