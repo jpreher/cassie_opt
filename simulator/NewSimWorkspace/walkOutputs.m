@@ -12,6 +12,7 @@ classdef walkOutputs < handle
         d2ya
         Dya
         DLfya
+        Jya
         
         yd
         dyd
@@ -57,11 +58,13 @@ classdef walkOutputs < handle
             if strcmp(param.stance_leg, 'Left')
                 obj.ya   = frost_expr.outputs.yaLeftStance(q);
                 obj.dya  = frost_expr.outputs.dyaLeftStance(q,dq);
+                obj.Jya  = frost_expr.outputs.J_yaLeftStance(q);
                 obj.Dya      = frost_expr.outputs.Dya_LeftStanceActual(q);
                 obj.DLfya    = frost_expr.outputs.DLfya_LeftStanceActual(q,dq);
             elseif strcmp(param.stance_leg, 'Right')
                 obj.ya   = frost_expr.outputs.yaRightStance(q);
                 obj.dya  = frost_expr.outputs.dyaRightStance(q,dq);
+                obj.Jya  = frost_expr.outputs.J_yaRightStance(q);
                 obj.Dya      = frost_expr.outputs.Dya_RightStanceActual(q);
                 obj.DLfya    = frost_expr.outputs.DLfya_RightStanceActual(q,dq);
             end

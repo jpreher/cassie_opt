@@ -43,10 +43,11 @@ end
 % Evaluate the closed loop dynamics with the non-constraint projected
 % dynamics
 % Generate the vector fields
+D = dyn.De;
 Fv = + dyn.Fspring - dyn.Cvec - dyn.Gvec;
-XiInv = dyn.Jc * (dyn.De \ transpose(dyn.Jc));
+XiInv = dyn.Jc * (D \ transpose(dyn.Jc));
 Gv = dyn.Be * u;
-lambda = -XiInv \ (dyn.dJc * dq + dyn.Jc * (dyn.De \ (Fv + Gv)));
+lambda = -XiInv \ (dyn.dJc * dq + dyn.Jc * (D \ (Fv + Gv)));
 
 for i = 1:size(dyn.Jc,1)
     tol = 1e-3;

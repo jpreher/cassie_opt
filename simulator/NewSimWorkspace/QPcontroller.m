@@ -12,6 +12,7 @@ classdef QPcontroller < handle
         final_aposition
         v_avg_allocator
         v_avg_count
+        ikSolver
     end
     
     methods
@@ -31,7 +32,9 @@ classdef QPcontroller < handle
                 0, 1, -mu_/sqrt(2), 0, 0;
                 0,-1, -mu_/sqrt(2), 0, 0;
                 0, 0 -foot_length*mu_, 0, 1;
-                0, 0 -foot_length*mu_, 0,-1];
+                0, 0 -foot_length*mu_, 0,-1;
+                0, 0 -foot_length*mu_, 1, 0;
+                0, 0 -foot_length*mu_,-1, 0];
             
             % Torque constr aints
             torque_bounds = repmat([4.5, 4.5, 12.2, 12.2, 0.9], 1, 2)';
@@ -44,13 +47,16 @@ classdef QPcontroller < handle
             obj.step_has_raibert = false;
             obj.v_avg_allocator = [0;0];
             obj.v_avg_count = 0;
+            
+            % Inverse kinematics
+            obj.ikSolver = SingleSupportIKsolver();
         end
         
         function [u, F, delta] = update(obj, q, dq, dyn, param)
             % Update the phase variable
             param.phase.update(param.timer);
             if param.phase.tau > 1.0
-                %param.phase.tau = 1.0;
+                param.phase.tau = 1.0;
             end
             
             % Update Raibert foot placement
@@ -60,7 +66,7 @@ classdef QPcontroller < handle
             [psi0, psi1, LGV, LFV] = obj.outputs.update(q, dq, param);
             
             % Generate QP torques
-            controller = 'new'; %'trad', 'proj', 'IO', 'new'
+            controller = 'new_proj'; %'trad', 'proj', 'IO', 'new'
             if strcmp(controller, 'trad')
                 [u, F, delta] = obj.traditional_clfqp(q, dq, psi0, psi1, dyn, param);
             elseif strcmp(controller, 'proj')
@@ -138,14 +144,14 @@ classdef QPcontroller < handle
         function [u, F, delta] = projection_clfqp(obj, q, dq, psi0, psi1, dyn, param)
             %%% Do new cost method
             %%% Run traditional clf-qp
-%             Dc = dyn.Su * dyn.Q' * dyn.De;
-%             Hc = dyn.Su * dyn.Q' * (dyn.Cvec + dyn.Gvec - dyn.Fspring);
-%             Bc = dyn.Su * dyn.Q' * dyn.Be;
-%             
-%             gfc = [zeros(22,10);
-%                   Dc \ Bc];
-%             vfc = [dq;
-%                   Dc \ Hc];
+            %             Dc = dyn.Su * dyn.Q' * dyn.De;
+            %             Hc = dyn.Su * dyn.Q' * (dyn.Cvec + dyn.Gvec - dyn.Fspring);
+            %             Bc = dyn.Su * dyn.Q' * dyn.Be;
+            %
+            %             gfc = [zeros(22,10);
+            %                   Dc \ Bc];
+            %             vfc = [dq;
+            %                   Dc \ Hc];
             
             Fv = -dyn.Cvec - dyn.Gvec + dyn.Fspring;
             XiInv = dyn.Jc * (dyn.De \ transpose(dyn.Jc));
@@ -193,17 +199,17 @@ classdef QPcontroller < handle
             end
             
             lb = [lb_u;
-                 -inf];
+                -inf];
             ub = [ub_u;
-                  inf];
+                inf];
             
             A = [A_clf;
-                 [Acontact, zeros(size(Acontact,1),1)]];
+                [Acontact, zeros(size(Acontact,1),1)]];
             
             lbA = [-inf * ones(1,1);
-                   -inf * ones(size(bcontact))];
+                -inf * ones(size(bcontact))];
             ubA = [b_clf;
-                   bcontact];
+                bcontact];
             
             if isempty(obj.u_bar_last)
                 obj.u_bar_last = zeros(size(lb));
@@ -321,8 +327,8 @@ classdef QPcontroller < handle
             options = qpOASES_options('maxIter', 5000, 'printLevel', 1);
             [u_bar, fval, exitflag, numiter] = qpOASES(Hmat, fmat, A, lb, ub, lbA, ubA, options, aux_data);
             
-%             t1 = obj.outputs.DLfya * (dyn.De \ ( Bbar * u_bar(1:19) + dyn.Fspring - dyn.Cvec - dyn.Gvec))
-%             t2 = obj.outputs.DLfya * (dyn.De \ ( Bbar * u_bar(1:19) )  + obj.outputs.DLfya * dyn.De \ (dyn.Fspring - dyn.Cvec - dyn.Gvec))
+            %             t1 = obj.outputs.DLfya * (dyn.De \ ( Bbar * u_bar(1:19) + dyn.Fspring - dyn.Cvec - dyn.Gvec))
+            %             t2 = obj.outputs.DLfya * (dyn.De \ ( Bbar * u_bar(1:19) )  + obj.outputs.DLfya * dyn.De \ (dyn.Fspring - dyn.Cvec - dyn.Gvec))
             
             if exitflag ~= 0
                 %warning('The QP did not converge!');
@@ -344,6 +350,7 @@ classdef QPcontroller < handle
         function u = IO_control(obj, q, dq, ~, ~, dyn, ~)
             %%% Run traditional IO
             Fv = -dyn.Cvec - dyn.Gvec + dyn.Fspring;
+            Fv = Fv * 0.9;
             XiInv = dyn.Jc * (dyn.De \ transpose(dyn.Jc));
             gfc = [zeros(size(dyn.Be));
                 dyn.De \ (eye(22) - transpose(dyn.Jc)* (XiInv \ (dyn.Jc / dyn.De))) * dyn.Be];
@@ -378,21 +385,55 @@ classdef QPcontroller < handle
             A_hols = [dyn.Jc, zeros(9,10), zeros(9,9), zeros(9,1)];
             b_hols = - dyn.dJc * dq;
             
-            % Friction Cone Inequality Constraint
-            bcontact = zeros(7,1);
+            % Friction Cone Inequality Constr1aint
+            bcontact = zeros(9,1);
             % if param.phase.tau > 0.9
-                % bcontact(2:7) = inf;% bcontact * 1000000;
+            % bcontact(2:7) = inf;% bcontact * 1000000;
             % end
-            P = [zeros(7,4), ... % No constraint on the first 4 holonomic wrenches
-                 obj.contact_pyramid]; % Constraints on GRF only
-            A_friction = [ zeros(7,22), zeros(7,10), P, zeros(7,1) ];
-            b_lb_fric = -inf * ones(7,1);
-            b_ub_fric = bcontact;
+            P = [zeros(9,2), ... % No constraint on the first 4 holonomic wrenches
+                obj.contact_pyramid, ...
+                zeros(9,2)]; % Constraints on GRF only
+            A_friction = [ zeros(9,22), zeros(9,10), P, zeros(9,1) ];
+            b_lb_fric = -inf * ones(9,1);
+            b_ub_fric = inf * ones(9,1);%bcontact;
             
             % CLF Convergence Constraint
             A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), zeros(1,9), -1 ];
             b_lb_clf = -inf;
+            b_ub_clf = +inf;
             b_ub_clf = - obj.outputs.gam*obj.outputs.Veta - LFV - LGV * obj.outputs.DLfya(:,1:22) * dq; %  b_clf;
+            
+            % Regularization
+            A_reg = eye(42);
+            b_reg = zeros(42,1);
+            
+            ddqd = bezier(param.gait_param.ddqd, param.phase.tau);
+            %b_reg(1:22) = dyn.JCc \ (- dyn.dJCc * dq) + (eye(22) + dyn.JCc \ dyn.JCc) * ddqd;
+            b_reg(1:22) = ddqd;
+            
+            fd = bezier(param.gait_param.fd, param.phase.tau);
+            b_reg(33:39) = fd;
+            
+            % Output PD control + virtual holonomic
+            Kpy = [1600, 800, 400, 1200, 1000, 400, 400, 400, 750]';
+            Kdy = [25, 16, 5, 20, 18, 6, 6, 6, 25]';%25;
+            
+            %B  = zeros(22,9);
+            %By = zeros(10,9);
+            %By(1:4,1:4) = eye(4);
+            %if strcmp(param.stance_leg,'Left')
+            %    By(6:10, 5:9) = eye(5);
+            %    B = dyn.Be(:, [1:4,6:10]);
+            %else
+            %    By(5:9, 5:9) = eye(5);
+            %    B = dyn.Be(:, 1:9);
+            %end
+            %P = eye(22) - pinv(dyn.JCc)* dyn.JCc;
+            %ddy = - ( pinv(P * B) * P ) * (B * (Kpy.*obj.outputs.y + Kdy.*obj.outputs.dy));
+            
+            A_y = [obj.outputs.Dya(:,1:22), zeros(9,10), zeros(9,9), zeros(9,1)];
+            %b_y = obj.outputs.d2yd - obj.outputs.DLfya(:,1:22) * dq + ddy;
+            b_y = obj.outputs.d2yd - obj.outputs.DLfya(:,1:22) * dq;% - Kpy.*obj.outputs.y - Kdy.*obj.outputs.dy;
             
             % Update the u bounds according to stance foot
             % and smooth with previous torque
@@ -406,69 +447,90 @@ classdef QPcontroller < handle
             u_prev = obj.u_bar_last(23:32);
             A_u_chat = [zeros(10,22), eye(10), zeros(10,9), zeros(10,1)];
             b_u_chat = u_prev;
+            %b_u_chat = pinv(dyn.Su*dyn.Q'*dyn.Be) * dyn.Su * dyn.Q' * (dyn.De*ddqd + He ) - pinv(obj.outputs.Jya) * (Kpy.*obj.outputs.y + Kdy.*obj.outputs.dy);
             
-            % Output PD control + virtual holonomic
-            Kpy = 500;%500;
-            Kdy = 50;%25;
-            A_y = [obj.outputs.Dya(:,1:22), zeros(9,10), zeros(9,9), zeros(9,1)];
-            b_y = obj.outputs.d2yd - obj.outputs.DLfya(:,1:22) * dq - Kpy*obj.outputs.y - Kdy*obj.outputs.dy;
             
-            % Regularization
-            A_reg = eye(42);
-            b_reg = zeros(42,1);
+            
+            
             
             % Build full constraint matrices
             lb = [-inf * ones(22,1); %ddq
-                  lb_u;              %torque
-                  -inf * ones(9,1);  %forces
-                  -inf];             %delta
+                lb_u;                %torque
+                -inf * ones(9,1);   %forces
+                -inf];               %delta
             ub = [+inf * ones(22,1); %ddq
-                  ub_u;              %torque
-                  +inf * ones(9,1);  %forces
-                  +inf];             %delta
+                ub_u;                %torque
+                +inf * ones(9,1);   %forces
+                +inf];               %delta
             Acon = [Aeq_dyn;
-                    A_friction;
-                    A_clf];
+                A_friction;
+                A_clf];
             lbAcon = [beq_dyn;
-                      b_lb_fric;
-                      b_lb_clf];
+                b_lb_fric;
+                b_lb_clf];
             ubAcon = [beq_dyn;
-                      b_ub_fric;
-                      b_ub_clf];
+                b_ub_fric;
+                b_ub_clf];
             
             % Construct the cost
             % 0.5*x'*H*x + f'*x
             % Assemble and solve
             w_ach_hol = 10;
-            w_rigidsp_hol = 5;
+            w_rigidsp_hol = 0.01;
             w_contact_hol = 10;
             w_hol = [w_ach_hol * ones(2,1);
-                     w_rigidsp_hol * ones(2,1);
-                     w_contact_hol * ones(5,1)];
-            w_u_chatter = 1e-1;
-            w_reg = [1e-5 * ones(22,1); % ddq
-                     1e-1 * ones(10,1); % u
-                     1e-5 * ones(2,1); % lambda_ach
-                     1e-5 * ones(2,1); % lambda_rigid
-                     1e-3 * ones(2,1); % fx fy
-                     1e-5 * ones(1,1); % fz
-                     1e-3 * ones(2,1); % muy, muz
-                     param.w_slack * ones(1,1)]; % delta
-            w_y = 1e-1;
+                w_contact_hol * ones(5,1);
+                w_rigidsp_hol * ones(2,1)];
+            w_u_chatter = 1;
+            w_reg = [1e-2 * ones(22,1); % ddq
+                1e-1 * ones(10,1); % u
+                1e-4 * ones(2,1); % lambda_ach
+                1e-4 * ones(2,1); % fx fy
+                1e-4 * ones(1,1); % fz
+                1e-4 * ones(2,1); % muy, muz
+                1e-5 * ones(2,1); % lambda_rigid
+                param.w_slack * ones(1,1)]; % delta
+            w_y = 1;
+            %             w = [w_hol; w_u_chatter.*ones(10,1); w_y.*ones(9,1); w_reg];
+            
+            %             w_ach_hol = 10;
+            %             w_rigidsp_hol = 5;
+            %             w_contact_hol = 10;
+            %             w_hol = [w_ach_hol * ones(2,1);
+            %                      w_rigidsp_hol * ones(2,1);
+            %                      w_contact_hol * ones(5,1)];
+            %             w_u_chatter = 1e-1;
+            %             w_reg = [1e-5 * ones(22,1); % ddq
+            %                      1e-1 * ones(10,1); % u
+            %                      1e-5 * ones(2,1); % lambda_ach
+            %                      1e-5 * ones(2,1); % lambda_rigid
+            %                      1e-3 * ones(2,1); % fx fy
+            %                      1e-5 * ones(1,1); % fz
+            %                      1e-3 * ones(2,1); % muy, muz
+            %                      param.w_slack * ones(1,1)]; % delta
+            %             w_y = 1;
+            
             
             A = [w_hol .* A_hols;
-                 w_u_chatter .* A_u_chat;
-                 w_reg .* A_reg;
-                 w_y .* A_y];
+                w_u_chatter .* A_u_chat;
+                w_y .* A_y;
+                w_reg .* A_reg];
             b = [w_hol .* b_hols;
-                 w_u_chatter .* b_u_chat;
-                 w_reg .* b_reg;
-                 w_y .* b_y];
+                w_u_chatter .* b_u_chat;
+                w_y .* b_y;
+                w_reg .* b_reg];
+            
+            G = A'*A;
+            g = -A'*b + 2.5 .* [(LGV*obj.outputs.Dya(:,1:22))'; zeros(20,1)];
             
             % Run QP
             aux_data = qpOASES_auxInput('x0', obj.u_bar_last);
-            options = qpOASES_options('maxIter', 50, 'printLevel', 1);
-            [u_bar, fval, exitflag, numiter] = qpOASES(A'*A, -A'*b, Acon, lb, ub, lbAcon, ubAcon, options, aux_data);
+            options = qpOASES_options('maxIter', 100, 'printLevel', 1, ...
+                'enableRamping', false, 'enableFarBounds', true, 'enableFlippingBounds', false, ...
+                'enableRegularisation', false, 'enableNZCTests', false, 'enableDriftCorrection', false, ...
+                'enableEqualities', true, 'terminationTolerance', 1e9*eps, ...
+                'numRegularisationSteps', 1, 'numRefinementSteps', 0);
+            [u_bar, fval, exitflag, numiter] = qpOASES(G, g, Acon, lb, ub, lbAcon, ubAcon, options, aux_data);
             
             if exitflag ~= 0
                 % If we did not converge, use IO controller
@@ -481,39 +543,58 @@ classdef QPcontroller < handle
             obj.u_bar_last = u_bar;
             ddq = u_bar(1:22);
             u = u_bar(23:32);     % Control
-            F = u_bar(33:41);
-            Fcon = F(5:end);
+            F = u_bar(33:42);
             delta = u_bar(end);
         end
         
         function [u, F, delta] = new_proj_clfqp(obj, q, dq, LFV, LGV, psi0, psi1, dyn, param)
             % Make sure initial guess is not empty
             if isempty(obj.u_bar_last)
-                obj.u_bar_last = zeros(33,1);
+                obj.u_bar_last = zeros(40,1);
+            end
+            
+            % Stance spring soft constraint
+            if strcmp(param.stance_leg,'Left')
+                Jc = [frost_expr.constraints.J_leftSole_constraint(q);
+                      frost_expr.constraints.J_left_fixed_constraint(q)];
+                dJc = [frost_expr.constraints.Jdot_leftSole_constraint(q,dq);
+                       frost_expr.constraints.Jdot_left_fixed_constraint(q,dq)];
+            elseif strcmp(param.stance_leg,'Right')
+                Jc = [frost_expr.constraints.J_rightSole_constraint(q);
+                      frost_expr.constraints.J_right_fixed_constraint(q)];
+                dJc = [frost_expr.constraints.Jdot_rightSole_constraint(q,dq);
+                       frost_expr.constraints.Jdot_right_fixed_constraint(q,dq)];
             end
             
             % Get dynamics terms
-            QDe = dyn.Q' * dyn.De;
-            QHe = dyn.Q' * (dyn.Cvec + dyn.Gvec - dyn.Fspring);
-            QBe = dyn.Q' * dyn.Be;
+            Paghili = eye(22) - pinv(dyn.JCc)*dyn.JCc;
             
-            % Dynamics Equality Constraint
-            Aeq_dyn = [ dyn.Su * QDe, -dyn.Su * QBe, zeros(13,1) ];
-            beq_dyn = - dyn.Su * QHe;
+            %He = (dyn.Cvec + dyn.Gvec - dyn.Fspring);
+            He = (dyn.Cvec + dyn.Gvec);
+            
+            Mc = dyn.De + Paghili*dyn.De - (Paghili*dyn.De)';
+            C = -pinv(dyn.JCc)*dyn.dJCc;
+            Cc = dyn.De * C;
+            Aeq_dyn = [ Mc, -Paghili*dyn.Be, -Paghili*Jc', zeros(size(Mc',1),1) ];
+            beq_dyn = - Paghili * He + Cc*dq;
+            
+            % Soft constraint to approximate spring force
+            A_c = [ Jc, zeros(7,10), zeros(7,7), zeros(7,1) ];
+            b_c = - dJc * dq;
             
             % Friction Cone Inequality Constraint
-            % F = dyn.R \ dyn.Sc * (QDe * ddq + QHe - BQe * u)
-            bcontact = zeros(7,1);
-            P = [zeros(7,4), ... % No constraint on the first 4 holonomic wrenches
-                 obj.contact_pyramid]; % Constraints on GRF only
-            A_friction = [ P*(dyn.R\(dyn.Sc*QDe)), -P*(dyn.R\(dyn.Sc*QBe)), zeros(7,1) ];
-            b_lb_fric = -inf * ones(7,1);
-            b_ub_fric = bcontact - P*(dyn.R\(dyn.Sc*QHe));
+            % F = pinv(dyn.Jc') * ( (eye(22) - Paghili) * dyn.De*ddq + He - dyn.Be * u - Jsp'*Fsp )
+            P = [obj.contact_pyramid, ...
+                 zeros(9,2)]; % Constraints on GRF only
+            A_friction = [ zeros(9,22), zeros(9,10), P, zeros(9,1) ];
+            b_lb_fric = -inf * ones(9,1);
+            b_ub_fric = zeros(9,1);
             
             % CLF Convergence Constraint
-            A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), -1 ];
+            A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), zeros(1,7), -1 ];
             b_lb_clf = -inf;
-            b_ub_clf = - obj.outputs.gam*obj.outputs.Veta - LFV - LGV * obj.outputs.DLfya(:,23:44) * dq;
+            b_ub_clf = inf;
+            %b_ub_clf = - obj.outputs.gam*obj.outputs.Veta - LFV - LGV * obj.outputs.DLfya(:,23:44) * dq;
             
             % Update the u bounds according to stance foot
             % and smooth with previous torque
@@ -525,72 +606,255 @@ classdef QPcontroller < handle
                 ub_u = obj.ubu; ub_u(10) = 0;
             end
             u_prev = obj.u_bar_last(23:32);
-            A_u_chat = [zeros(10,22), eye(10), zeros(10,1)];
+            A_u_chat = [zeros(10,22), eye(10), zeros(10,7), zeros(10,1)];
             b_u_chat = u_prev;
             
             % Output PD control + virtual holonomic
             Kpy = 500;%500;
-            Kdy = 50;%25;
-            A_y = [obj.outputs.Dya(:,1:22), zeros(9,10), zeros(9,1)];
-            b_y = - obj.outputs.DLfya(:,23:44) * dq - Kpy*obj.outputs.y - Kdy*obj.outputs.dy;
+            Kdy = 10;%25;
+            % A_y = [obj.outputs.Dya(:,1:22)*(eye(22) - pinv(dyn.Jc)*dyn.Jc), zeros(9,10), zeros(9,7), zeros(9,1)];
+            % b_y = - obj.outputs.DLfya(:,23:44) * pinv(dyn.Jc)*dyn.dJc*dq ...
+            % + obj.outputs.Dya(:,1:22)*(eye(22) - pinv(dyn.Jc)*dyn.Jc) * obj.outputs.Dya(:,1:22)'*(obj.outputs.d2yd - Kpy*obj.outputs.y - Kdy*obj.outputs.dy);   
+            A_y = [obj.outputs.Dya(:,1:22), zeros(9,10), zeros(9,7), zeros(9,1)];
+            b_y = - obj.outputs.DLfya(:,23:44) * dq ...
+                  + (obj.outputs.d2yd - Kpy*obj.outputs.y - Kdy*obj.outputs.dy);   
+
+%             % Joint level PD control
+%             Kpm = 10.*repmat([500, 500, 500, 500, 500], 1,2)';
+%             Kdm = 10.*repmat([5, 5, 5, 5, 5], 1,2)';
+%             Dym = zeros(10,22);
+%             Dym(:, obj.ikSolver.iRotorMap) = eye(10);
+%             if strcmp(param.stance_leg,'Left')
+%                 iActive = [1:4, 6:10];
+%                 obj.ikSolver.leftStance = true;
+%             else
+%                 iActive = 1:9;
+%                 obj.ikSolver.leftStance = false;
+%             end
+%             obj.ikSolver.X  = obj.outputs.yd;
+%             obj.ikSolver.dX = obj.outputs.dyd;
+%             obj.ikSolver.ddX = obj.outputs.d2yd;
+%             [yd, dyd, d2yd] = obj.ikSolver.evaluate(q,dq);
+%             
+%             ya  = q(obj.ikSolver.iRotorMap(iActive));
+%             dya = dq(obj.ikSolver.iRotorMap(iActive));
+%             Dym = Dym(iActive,:);
+%             Kpm = Kpm(iActive);
+%             Kdm = Kdm(iActive);
+%             A_y = [Dym, zeros(9,10), zeros(9,7), zeros(9,1)];
+%             Jya = obj.ikSolver.IkFunction.evaluateJacobian(ya);
+%             b_y = - Kpm.*(ya - yd(iActive)) - Kdm.*(dya - dyd(iActive)); % d2yd(iActive) - Jya*dya 
             
             % Regularization
-            A_reg = eye(33);
-            b_reg = zeros(33,1);
+            A_reg = eye(40);
+            b_reg = zeros(40,1);
+            
+            ddqd = bezier(param.gait_param.ddqd, param.phase.tau);
+            %b_reg(1:22) = pinv(dyn.Jc)*dyn.dJc*dq + (eye(22) - pinv(dyn.Jc)*dyn.Jc)*ddqd;
+            b_reg(1:22) = ddqd;
+            
+            fd = bezier(param.gait_param.fd, param.phase.tau);
+            b_reg(33:37) = fd(3:7);
+            
+            fspd = Jc(6:7,:) * dyn.Fspring;
+            b_reg(38:39) = fspd;
             
             % Build full constraint matrices
             lb = [-inf * ones(22,1); %ddq
                   lb_u;              %torque
+                  -600; -600; 0; -400; -400; % foot
+                  -inf * ones(2,1);  % spring force
                   -inf];             %delta
             ub = [+inf * ones(22,1); %ddq
-                  ub_u;              %torque
-                  +inf];             %delta
+                ub_u;              %torque
+                600; 600; 1200; 400; 400; % foot
+                +inf * ones(2,1);  % spring force
+                +inf];             %delta
             Acon = [Aeq_dyn;
-                    A_friction;
-                    A_clf];
+                A_friction;
+                A_clf];
             lbAcon = [beq_dyn;
-                      b_lb_fric;
-                      b_lb_clf];
+                b_lb_fric;
+                b_lb_clf];
             ubAcon = [beq_dyn;
-                      b_ub_fric;
-                      b_ub_clf];
+                b_ub_fric;
+                b_ub_clf];
             
             % Construct the cost
             % 0.5*x'*H*x + f'*x
             % Assemble and solve
-            w_u_chatter = 1e-1;
-            w_reg = [1e-5 * ones(22,1); % ddq
-                     1e-5 * ones(10,1); % u
-                     param.w_slack * ones(1,1)]; % delta
-            w_y = 1e-1;
+            w_u_chatter = 0.01;
+            w_reg = [0.001 * ones(22,1); % ddq
+                0.1 * ones(10,1); % u
+                0.02;   % fx
+                0.0075; % fy
+                0.075;  % fz
+                0.0001; % my
+                0.005;  % mz
+                2 * ones(2,1); % sp actual
+                1 * ones(1,1)]; % delta
+            w_y = 1;
+            w_con = [3;3;4;2;2];
+            w_springs = [0.0; 0.0];
             
             A = [w_u_chatter .* A_u_chat;
-                 w_reg .* A_reg;
-                 w_y .* A_y];
+                w_reg .* A_reg;
+                [w_con; w_springs] .* A_c;
+                w_y .* A_y];
             b = [w_u_chatter .* b_u_chat;
-                 w_reg .* b_reg;
-                 w_y .* b_y];
+                w_reg .* b_reg;
+                [w_con; w_springs] .* b_c;
+                w_y .* b_y];
+            
+            G = A'*A;
+            g = -A'*b;% + 2.5 .* [(LGV*obj.outputs.Dya(:,1:22))'; zeros(18,1)];
             
             % Run QP
             aux_data = qpOASES_auxInput('x0', obj.u_bar_last);
-            options = qpOASES_options('maxIter', 50, 'printLevel', 1);
-            [u_bar, fval, exitflag, numiter] = qpOASES(A'*A, -A'*b, Acon, lb, ub, lbAcon, ubAcon, options, aux_data);
+            options = qpOASES_options('maxIter', 500, 'printLevel', 1);
+            [u_bar, fval, exitflag, numiter] = qpOASES(G, g, Acon, lb, ub, lbAcon, ubAcon, options, aux_data);
             
             if exitflag ~= 0
                 % If we did not converge, use IO controller
                 u = obj.IO_control(q, dq, psi0, psi1, dyn, param);
                 delta = 0;
-                u_bar = [zeros(22,1); u; delta];
+                u_bar = [zeros(22,1); u; zeros(7,1); delta];
             end
             
             % Finalize
             obj.u_bar_last = u_bar;
             ddq = u_bar(1:22);
             u = u_bar(23:32);     % Control
-            F = dyn.R \ dyn.Sc * (QDe * ddq + QHe - QBe * u);
+            %F(dyn.E,1) = dyn.R \ dyn.Sc * (QDe * ddq + QHe - QBe * u)
+            F = [pinv(dyn.JCc') * ( (eye(22) - Paghili) * dyn.De*ddq + He - dyn.Be * u );
+                 u_bar(33:37)
+                 u_bar(38:39)];
+            
             Fcon = F(5:end);
             delta = u_bar(end);
         end
+        
+        %         function [u, F, delta] = new_proj_clfqp(obj, q, dq, LFV, LGV, psi0, psi1, dyn, param)
+        %             % Make sure initial guess is not empty
+        %             if isempty(obj.u_bar_last)
+        %                 obj.u_bar_last = zeros(33,1);
+        %             end
+        %
+        %             % Get dynamics terms
+        %             Paghili = eye(22) - pinv(dyn.JCc)*dyn.JCc;
+        %
+        %             %He = (dyn.Cvec + dyn.Gvec - dyn.Fspring);
+        %             He = (dyn.Cvec + dyn.Gvec);
+        %
+        %             Mc = dyn.De + Paghili*dyn.De - (Paghili*dyn.De)';
+        %             C = -pinv(dyn.JCc)*dyn.dJCc;
+        %             Cc = dyn.De * C;
+        %             Aeq_dyn = [ Mc, -Paghili*dyn.Be, zeros(size(Mc',1),1) ];
+        %             beq_dyn = - Paghili * He + Cc*dq;
+        %
+        %             % Friction Cone Inequality Constraint
+        %             % F = pinv(dyn.Jc') * ( (eye(22) - Paghili) * dyn.De*ddq + He - dyn.Be * u )
+        %             P = [zeros(9,4), ... % No constraint on the first 4 holonomic wrenches
+        %                  zeros(9,2), ...
+        %                  obj.contact_pyramid]; % Constraints on GRF only
+        %             JcTinv = pinv(dyn.JCc');
+        %             A_friction = [ P*JcTinv*(eye(22)-Paghili)*dyn.De, -P*JcTinv*dyn.Be , zeros(9,1) ];
+        %             b_lb_fric = -inf * ones(9,1);
+        %             b_ub_fric = -P*JcTinv*He;
+        %
+        %             % CLF Convergence Constraint
+        %             A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), -1 ];
+        %             b_lb_clf = -inf;
+        %             b_ub_clf = inf;
+        %             %b_ub_clf = - obj.outputs.gam*obj.outputs.Veta - LFV - LGV * obj.outputs.DLfya(:,23:44) * dq;
+        %
+        %             % Update the u bounds according to stance foot
+        %             % and smooth with previous torque
+        %             if strcmp(param.stance_leg,'Left')
+        %                 lb_u = obj.lbu; lb_u(5) = 0;
+        %                 ub_u = obj.ubu; ub_u(5) = 0;
+        %             elseif strcmp(param.stance_leg,'Right')
+        %                 lb_u = obj.lbu; lb_u(10) = 0;
+        %                 ub_u = obj.ubu; ub_u(10) = 0;
+        %             end
+        %             u_prev = obj.u_bar_last(23:32);
+        %             A_u_chat = [zeros(10,22), eye(10), zeros(10,1)];
+        %             b_u_chat = u_prev;
+        %
+        %             % Output PD control + virtual holonomic
+        %             Kpy = 500;%500;
+        %             Kdy = 10;%25;
+        %             A_y = [obj.outputs.Dya(:,1:22), zeros(9,10), zeros(9,1)];
+        %             b_y = obj.outputs.d2yd - obj.outputs.DLfya(:,23:44) * dq - Kpy*obj.outputs.y - Kdy*obj.outputs.dy;
+        %
+        %             % Regularization
+        %             A_reg = eye(33);
+        %             b_reg = zeros(33,1);
+        %
+        %             ddqd = bezier(param.gait_param.ddqd, param.phase.tau);
+        %             b_reg(1:22) = ddqd;
+        %
+        %             fd = bezier(param.gait_param.fd, param.phase.tau);
+        %
+        %             % Build full constraint matrices
+        %             lb = [-inf * ones(22,1); %ddq
+        %                 lb_u;              %torque
+        %                 -inf];             %delta
+        %             ub = [+inf * ones(22,1); %ddq
+        %                 ub_u;              %torque
+        %                 +inf];             %delta
+        %             Acon = [Aeq_dyn;
+        %                 A_friction;
+        %                 A_clf];
+        %             lbAcon = [beq_dyn;
+        %                 b_lb_fric;
+        %                 b_lb_clf];
+        %             ubAcon = [beq_dyn;
+        %                 b_ub_fric;
+        %                 b_ub_clf];
+        %
+        %             % Construct the cost
+        %             % 0.5*x'*H*x + f'*x
+        %             % Assemble and solve
+        %             w_u_chatter = 0.01;
+        %             w_reg = [0.001 * ones(22,1); % ddq
+        %                 0.1 * ones(10,1); % u
+        %                 1 * ones(1,1)]; % delta
+        %             w_y = 1;
+        %
+        %             A = [w_u_chatter .* A_u_chat;
+        %                 w_reg .* A_reg;
+        %                 w_y .* A_y];
+        %             b = [w_u_chatter .* b_u_chat;
+        %                 w_reg .* b_reg;
+        %                 w_y .* b_y];
+        %
+        %             G = A'*A;
+        %             g = -A'*b;% + 2.5 .* [(LGV*obj.outputs.Dya(:,1:22))'; zeros(11,1)];
+        %
+        %             % Run QP
+        %             aux_data = qpOASES_auxInput('x0', obj.u_bar_last);
+        %             options = qpOASES_options('maxIter', 500, 'printLevel', 1);
+        %             [u_bar, fval, exitflag, numiter] = qpOASES(G, g, Acon, lb, ub, lbAcon, ubAcon, options, aux_data);
+        %
+        %             if exitflag ~= 0
+        %                 % If we did not converge, use IO controller
+        %                 u = obj.IO_control(q, dq, psi0, psi1, dyn, param);
+        %                 delta = 0;
+        %                 u_bar = [zeros(22,1); u; delta];
+        %             end
+        %
+        %             % Finalize
+        %             obj.u_bar_last = u_bar;
+        %             ddq = u_bar(1:22);
+        %             u = u_bar(23:32);     % Control
+        %             %F(dyn.E,1) = dyn.R \ dyn.Sc * (QDe * ddq + QHe - QBe * u)
+        %             F = pinv(dyn.JCc') * ( (eye(22) - Paghili) * dyn.De*ddq + He - dyn.Be * u );
+        %
+        %             Fcon = F(5:end);
+        %             delta = u_bar(end);
+        %         end
+        
         
         function [u, F] = new_clfqp_cost(obj, q, dq, LFV, LGV, psi0, psi1, dyn, param)
             % Make sure initial guess is not empty
@@ -601,7 +865,8 @@ classdef QPcontroller < handle
             % Dynamics Equality Constraint
             He = dyn.Cvec + dyn.Gvec;
             Aeq_dyn = [ dyn.De, -dyn.Be, -dyn.Jc'];
-            beq_dyn = - He + dyn.Fspring;
+            %beq_dyn = - He + dyn.Fspring;
+            beq_dyn = - He; % + dyn.Fspring;
             
             % Holonomic Constraints
             A_hols = [dyn.Jc, zeros(9,10), zeros(9,9)];
@@ -610,14 +875,14 @@ classdef QPcontroller < handle
             % Friction Cone Inequality Constraint
             bcontact = zeros(7,1);
             % if param.phase.tau > 0.9
-                % bcontact(2:7) = inf;% bcontact * 1000000;
+            % bcontact(2:7) = inf;% bcontact * 1000000;
             % end
             P = [zeros(7,4), ... % No constraint on the first 4 holonomic wrenches
-                 obj.contact_pyramid]; % Constraints on GRF only
+                obj.contact_pyramid]; % Constraints on GRF only
             A_friction = [ zeros(7,22), zeros(7,10), P];
             b_lb_fric = -inf * ones(7,1);
             b_ub_fric = bcontact;
-                        
+            
             % Update the u bounds according to stance foot
             % and smooth with previous torque
             if strcmp(param.stance_leg,'Left')
@@ -643,17 +908,17 @@ classdef QPcontroller < handle
             
             % Build full constraint matrices
             lb = [-inf * ones(22,1); %ddq
-                  lb_u;              %torque
-                  -inf * ones(9,1)]; %forces
+                lb_u;              %torque
+                -inf * ones(9,1)]; %forces
             ub = [+inf * ones(22,1); %ddq
-                  ub_u;              %torque
-                  +inf * ones(9,1)]; %forces
+                ub_u;              %torque
+                +inf * ones(9,1)]; %forces
             Acon = [Aeq_dyn;
-                    A_friction];
+                A_friction];
             lbAcon = [beq_dyn;
-                      b_lb_fric];
+                b_lb_fric];
             ubAcon = [beq_dyn;
-                      b_ub_fric];
+                b_ub_fric];
             
             % Construct the cost
             % 0.5*x'*H*x + f'*x
@@ -662,31 +927,31 @@ classdef QPcontroller < handle
             w_rigidsp_hol = 5;
             w_contact_hol = 10;
             w_hol = [w_ach_hol * ones(2,1);
-                     w_rigidsp_hol * ones(2,1);
-                     w_contact_hol * ones(5,1)];
+                w_rigidsp_hol * ones(2,1);
+                w_contact_hol * ones(5,1)];
             w_u_chatter = 1e-1;
             w_reg = [1e-5 * ones(22,1); % ddq
-                     1e-1 * ones(10,1); % u
-                     1e-5 * ones(2,1); % lambda_ach
-                     1e-5 * ones(2,1); % lambda_rigid
-                     1e-4 * ones(2,1); % fx fy
-                     1e-5 * ones(1,1); % fz
-                     1e-4 * ones(2,1)]; % muy, muz
+                1e-1 * ones(10,1); % u
+                1e-5 * ones(2,1); % lambda_ach
+                1e-5 * ones(2,1); % lambda_rigid
+                1e-4 * ones(2,1); % fx fy
+                1e-5 * ones(1,1); % fz
+                1e-4 * ones(2,1)]; % muy, muz
             w_y = 1e-1;
             
             A = [...
                 w_hol .* A_hols;
                 w_u_chatter .* A_u_chat;
-                w_reg .* A_reg;
-                w_y .* A_y];
+                w_y .* A_y;
+                w_reg .* A_reg];
             b = [...
                 w_hol .* b_hols;
                 w_u_chatter .* b_u_chat;
-                w_reg .* b_reg;
-                w_y .* b_y];
+                w_y .* b_y;
+                w_reg .* b_reg];
             
             G = A'*A;
-            g = -A'*b +  0.1 .* [(LGV*obj.outputs.Dya(:,1:22))'; zeros(19,1)]; 
+            g = -A'*b;% +  0.1 .* [(LGV*obj.outputs.Dya(:,1:22))'; zeros(19,1)];
             
             % Run QP
             aux_data = qpOASES_auxInput('x0', obj.u_bar_last);

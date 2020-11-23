@@ -10,7 +10,7 @@
 % Outputs:
 %   fcn: The first derivative of the Bezier polynomials at s. 
 %
-% Author: Jake Reher, jreher@caltech.edu
+% Author: Jenna Reher, jreher@caltech.edu
 %
 % Date: August 31, 2017
 % ________________________________________
