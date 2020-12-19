@@ -16,19 +16,19 @@ else
 end
 
 if v_target(1) < 0
-    lbx = -0.25 + 6.0*v_target(1);
-    ubx = +0.25 - 0.5*v_target(1);
+    lbx = -0.35 + 6.0*v_target(1);
+    ubx = +0.35 - 1.5*v_target(1);
 else
-    lbx = -0.25 - 0.5*v_target(1);
-    ubx = +0.25 + 6.0*v_target(1);
+    lbx = -0.35 - 1.5*v_target(1);
+    ubx = +0.35 + 6.0*v_target(1);
 end
 
 if v_target(2) < 0
-    lby = -0.25 + 6.0*v_target(2);
-    uby = +0.25 + 0.5*v_target(2);
+    lby = -0.30 + 6.0*v_target(2);
+    uby = +0.30 + 1.5*v_target(2);
 else
-    lby = -0.25 + 0.5*v_target(2);
-    uby = +0.25 + 6.0*v_target(2);
+    lby = -0.30 + 1.5*v_target(2);
+    uby = +0.30 + 6.0*v_target(2);
 end
 
 addNodeConstraint(nlp, v_foot_fun, {'x', 'dx'}, 1:3:nlp.NumNode, ...

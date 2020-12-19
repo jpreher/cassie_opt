@@ -2,27 +2,26 @@
 clear;clc;
 
 % Parameters
-n_steps = 5;
-step_size = 1/500;
+n_steps = 1;
+step_size = 1/1000;
 stance_leg = 'Right';
-initial_speed = [0.75, 0]; % [vx0, vy0];
+initial_speed = [0.0, 0]; % [vx0, vy0];
 
 
 % Load gait parameter library
-load('gaitLib_interp');
-gait_param = param_lib(initial_speed(1), stance_leg, interp_lib);
+load('20200927');
+gait_param = param_lib(initial_speed(1), initial_speed(2), stance_leg, nested_lib);
 final_aposition = gait_param.aposition;
 
 % Initial condition
 im = [7,8,9,10, 14,    15,16,17,18, 22];
 x0 = gait_param.x0;
-% x0(23:44) = 0;
 
 q = x0(1:22);
-dq = x0(23:44);
+dq = 0.* x0(23:44);
 
 % Pre-update the dynamics
-dyn = CassieEOM(false);
+dyn = CassieEOM(true);
 dyn.update(q, dq, ...
     strcmp(stance_leg, 'Left'), strcmp(stance_leg, 'Right'), ...
     strcmp(stance_leg, 'Right'),strcmp(stance_leg, 'Left'));
@@ -31,13 +30,13 @@ dyn.update(q, dq, ...
 % Design the walking controller
 param = GaitParams();
 param.controller = 'QPwalk';
-param.ep = 1e-2;
+param.ep = 2e-1;
 param.w_slack = 1e2;
 param.stance_leg = stance_leg;
 param.gait_param = gait_param;
 param.timer = Timer();
 param.phase = PhaseTime(flipud(gait_param.pposition));
-param.interp_lib = interp_lib;
+param.interp_lib = nested_lib;
 param.avg_vel = [0;0];
 param.prev_avg_vel = initial_speed';
 param.k_step = 0;
@@ -136,7 +135,8 @@ for k_step = 1:n_steps
             % Perform a motion transition
             % va = param.velocityLP.filteredValue(1);
             va = param.v_step_avg_allocator / param.v_step_avg_count;            
-            param.gait_param = param_lib(param.velocityLP.filteredValue(1), param.stance_leg, interp_lib);
+            param.gait_param = param_lib(param.velocityLP.filteredValue(1), param.velocityLP.filteredValue(2), ...
+                param.stance_leg, nested_lib);
             controller.outputs.update(q,dq,param);
             yd_last = controller.outputs.ya;
             dyd_last = controller.outputs.dya;
@@ -144,20 +144,20 @@ for k_step = 1:n_steps
                 param.gait_param.pposition, param.gait_param.aposition, ...
                 controller.outputs.ya, controller.outputs.dya);
             
-            % Compute Raibert for the end
-            yF   = bezier(param.gait_param.aposition, 1);
-            Kp_raibert = [0.38;  0.255];
-            Kd_raibert = [0.35;  0.15];
-            offset = -Kp_raibert .* (va - param.vd) - Kd_raibert .* (va - param.v_prev);
-            if strcmp(param.stance_leg, 'Right')
-                offset(2) = clamp(offset(2), -1.0, 0);
-                yF(1) = yF(1) - offset(2);
-            elseif strcmp(param.stance_leg, 'Left')
-                offset(2) = clamp(offset(2), 0, 1.0);
-                yF(1) = yF(1) - offset(2);
-            end
-            yF(7) = yF(7) + offset(1);
-            param.gait_param.aposition = computeEndTransition( param.phase.dtau, param.gait_param.aposition, yF );
+%             % Compute Raibert for the end
+%             yF   = bezier(param.gait_param.aposition, 1);
+%             Kp_raibert = [0.38;  0.255];
+%             Kd_raibert = [0.35;  0.15];
+%             offset = -Kp_raibert .* (va - param.vd) - Kd_raibert .* (va - param.v_prev);
+%             if strcmp(param.stance_leg, 'Right')
+%                 offset(2) = clamp(offset(2), -1.0, 0);
+%                 yF(1) = yF(1) - offset(2);
+%             elseif strcmp(param.stance_leg, 'Left')
+%                 offset(2) = clamp(offset(2), 0, 1.0);
+%                 yF(1) = yF(1) - offset(2);
+%             end
+%             yF(7) = yF(7) + offset(1);
+%             param.gait_param.aposition = computeEndTransition( param.phase.dtau, param.gait_param.aposition, yF );
             
             %param.v_prev = param.velocityLP.filteredValue;
             param.v_prev = param.v_step_avg_allocator / param.v_step_avg_count;
@@ -256,23 +256,23 @@ plot(logger.flow.t, logger.flow.tau);
 title('Phase'); xlabel('Time (s)'); ylabel('tau');
 
 figure(106)
-plot(logger.flow.t, logger.flow.F(5:end,:));
+plot(logger.flow.t, logger.flow.F,'--');
 hold on; grid on;
-plot(logger.flow.t, logger.flow.FQP(5:end,:), '--');
+plot(logger.flow.t, logger.flow.FQP);
 title('Contact Forces'); xlabel('Time (s)'); ylabel('Force (N)');
 
-figure(107)
-subplot(2,1,1);
-plot(logger.flow.t, logger.flow.F(1:2,:));
-hold on; grid on;
-plot(logger.flow.t, logger.flow.FQP(1:2,:), '--');
-title('Spring Holonomic Forces');  ylabel('Achilles (N)');
-subplot(2,1,2);
-plot(logger.flow.t, logger.flow.F(3:4,:));
-hold on; grid on;
-plot(logger.flow.t, logger.flow.FQP(3:4,:), '--');
-ylabel('Rigid Swing (N)');
-xlabel('Time (s)');
+% figure(107)
+% subplot(2,1,1);
+% plot(logger.flow.t, logger.flow.F(1:2,:));
+% hold on; grid on;
+% plot(logger.flow.t, logger.flow.FQP(1:2,:), '--');
+% title('Spring Holonomic Forces');  ylabel('Achilles (N)');
+% subplot(2,1,2);
+% plot(logger.flow.t, logger.flow.F(3:4,:));
+% hold on; grid on;
+% plot(logger.flow.t, logger.flow.FQP(3:4,:), '--');
+% ylabel('Rigid Swing (N)');
+% xlabel('Time (s)');
 
 figure(105)
 subplot(2,1,1);

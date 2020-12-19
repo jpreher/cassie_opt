@@ -1,4 +1,4 @@
-function [outputArg1,outputArg2] = tauSS(nlp, isTime, singleDomain)
+function [] = tauSS(nlp, isTime, singleDomain)
 
 domain = nlp.Plant;
 x = domain.States.x;

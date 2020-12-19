@@ -708,42 +708,42 @@ for k = 1:nVertex
 %     title 'RightHeelSpring'; xlabel 'time'; ylabel 'force';
 %     
     
-    %% Outputs
-    % this is hard coded, need to improve
-    h = figure(132); 
-    if(k==1) clf; end
-    h.Name = 'ya_yd'; h.WindowStyle = 'docked';
-
-    % This is hard-coded, need to fix.
-    % Always verify this
-    if endsWith(logger(k).plant.Name,'SS')
-        indexY = 1:5;
-    elseif endsWith(logger(k).plant.Name,'FL')
-        indexY = 1:10; %fix this
-    elseif endsWith(logger(k).plant.Name,'DS')
-        indexY = 1:6; %[ 1 2 3 4 6 7];
-    else
-        disp('problem foo');
-    end
-
-    for iy = 1:length(indexY)
-        subplot(2,5,indexY(iy))
-        plot(t, ya(iy,:)); hold on; grid on;
-        plot(t, yd(iy,:), 'b--'); hold on;
-        title(logger(k).plant.VirtualConstraints.position.OutputLabel(iy));
-    end
-
-    % output errors
-    h = figure(133); 
-    if(k==1) clf; end
-    h.Name = 'y_error'; h.WindowStyle = 'docked';
-    for iy = 1:length(indexY)
-        subplot(2,5,indexY(iy))
-        plot(t, ya(iy,:)-yd(iy,:)); hold on; grid on;
-        title(logger(k).plant.VirtualConstraints.position.OutputLabel(iy));
-    end
-
-    
+%     %% Outputs
+%     % this is hard coded, need to improve
+%     h = figure(132); 
+%     if(k==1) clf; end
+%     h.Name = 'ya_yd'; h.WindowStyle = 'docked';
+% 
+%     % This is hard-coded, need to fix.
+%     % Always verify this
+%     if endsWith(logger(k).plant.Name,'SS')
+%         indexY = 1:5;
+%     elseif endsWith(logger(k).plant.Name,'FL')
+%         indexY = 1:10; %fix this
+%     elseif endsWith(logger(k).plant.Name,'DS')
+%         indexY = 1:6; %[ 1 2 3 4 6 7];
+%     else
+%         disp('problem foo');
+%     end
+% 
+%     for iy = 1:length(indexY)
+%         subplot(2,5,indexY(iy))
+%         plot(t, ya(iy,:)); hold on; grid on;
+%         plot(t, yd(iy,:), 'b--'); hold on;
+%         title(logger(k).plant.VirtualConstraints.position.OutputLabel(iy));
+%     end
+% 
+%     % output errors
+%     h = figure(133); 
+%     if(k==1) clf; end
+%     h.Name = 'y_error'; h.WindowStyle = 'docked';
+%     for iy = 1:length(indexY)
+%         subplot(2,5,indexY(iy))
+%         plot(t, ya(iy,:)-yd(iy,:)); hold on; grid on;
+%         title(logger(k).plant.VirtualConstraints.position.OutputLabel(iy));
+%     end
+% 
+%     
 %     %% ROM related subjects
 %     if strcmp(domain.Name, 'RightSS')
 %        ur = zeros(3, length(t));

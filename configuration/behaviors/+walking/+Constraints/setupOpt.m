@@ -29,8 +29,8 @@ model_bounds.states.dx.ub(ind)  =  4.5;
 ind = behavior.robotModel.getJointIndices('BasePosZ');
 model_bounds.states.x.lb(ind)  = 0.80; 
 model_bounds.states.x.ub(ind)  = 0.88;
-model_bounds.states.dx.lb(ind) = -0.75;   
-model_bounds.states.dx.ub(ind) =  0.75;   
+model_bounds.states.dx.lb(ind) = -0.4;   
+model_bounds.states.dx.ub(ind) =  0.4;   
 
 ind = behavior.robotModel.getJointIndices('BaseRotX');
 model_bounds.states.x.lb(ind)  = -0.05;
@@ -91,12 +91,19 @@ bounds.RightLift   = model_bounds;
 bounds.RightImpact = model_bounds;
 
 %%% Actuator Bounds %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% bounds.RightDS.inputs.Control.u.lb([1,2]) = 0;
+% bounds.RightDS.inputs.Control.u.ub([1,2]) = 0;
 bounds.RightDS.inputs.Control.u.lb([5,10]) = 0;
 bounds.RightDS.inputs.Control.u.ub([5,10]) = 0;
+% 
 bounds.RightSS.inputs.Control.u.lb(10) = 0;
 bounds.RightSS.inputs.Control.u.ub(10) = 0;
+% 
+% bounds.LeftDS.inputs.Control.u.lb([6,7]) = 0;
+% bounds.LeftDS.inputs.Control.u.ub([6,7]) = 0;
 bounds.LeftDS.inputs.Control.u.lb([5,10]) = 0;
 bounds.LeftDS.inputs.Control.u.ub([5,10]) = 0;
+% 
 bounds.LeftSS.inputs.Control.u.lb(5) = 0;
 bounds.LeftSS.inputs.Control.u.ub(5) = 0;
 
@@ -118,32 +125,32 @@ bounds.LeftSS.params.pLeftSole.lb  = [-1.5, 0,   0, 0, 0];
 bounds.LeftSS.params.pLeftSole.ub  = [+1.5, 1.5, 0, 0, 0];
 
 %%% Constraint Wrench Forces %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bounds.RightDS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -250];
-bounds.RightDS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +250];
-bounds.RightDS.inputs.ConstraintWrench.fLeftSole.lb   = [-150, -150,   0, -250, -250];
-bounds.RightDS.inputs.ConstraintWrench.fLeftSole.ub   = [+150, +150, 750, +250, +250];
+bounds.RightDS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -40];
+bounds.RightDS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +40];
+bounds.RightDS.inputs.ConstraintWrench.fLeftSole.lb   = [-150, -150,   0, -250, -40];
+bounds.RightDS.inputs.ConstraintWrench.fLeftSole.ub   = [+150, +150, 750, +250, +40];
 
-bounds.RightSS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -250];
-bounds.RightSS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +250];
+bounds.RightSS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -40];
+bounds.RightSS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +40];
 
-bounds.LeftDS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -250];
-bounds.LeftDS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +250];
-bounds.LeftDS.inputs.ConstraintWrench.fLeftSole.lb   = [-150, -150,   0, -250, -250];
-bounds.LeftDS.inputs.ConstraintWrench.fLeftSole.ub   = [+150, +150, 750, +250, +250];
+bounds.LeftDS.inputs.ConstraintWrench.fRightSole.lb  = [-150, -150,   0, -250, -40];
+bounds.LeftDS.inputs.ConstraintWrench.fRightSole.ub  = [+150, +150, 750, +250, +40];
+bounds.LeftDS.inputs.ConstraintWrench.fLeftSole.lb   = [-150, -150,   0, -250, -40];
+bounds.LeftDS.inputs.ConstraintWrench.fLeftSole.ub   = [+150, +150, 750, +250, +40];
 
-bounds.LeftSS.inputs.ConstraintWrench.fLeftSole.lb  = [-150, -150,   0, -250, -250];
-bounds.LeftSS.inputs.ConstraintWrench.fLeftSole.ub  = [+150, +150, 750, +250, +250];
+bounds.LeftSS.inputs.ConstraintWrench.fLeftSole.lb  = [-150, -150,   0, -250, -40];
+bounds.LeftSS.inputs.ConstraintWrench.fLeftSole.ub  = [+150, +150, 750, +250, +40];
 
 %%% Time %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 bounds.RightDS.time.t0.lb = 0;
 bounds.RightDS.time.t0.ub = 0;
-bounds.RightDS.time.tf.lb = 0.05;
-bounds.RightDS.time.tf.ub = 0.15;
+bounds.RightDS.time.tf.lb = 0.03;
+bounds.RightDS.time.tf.ub = 0.08;
 
 bounds.RightSS.time.t0.lb = bounds.RightDS.time.tf.lb;
 bounds.RightSS.time.t0.ub = bounds.RightDS.time.tf.ub;
-bounds.RightSS.time.tf.lb = 0.40;
-bounds.RightSS.time.tf.ub = 0.40;
+bounds.RightSS.time.tf.lb = model_bounds.params.T;
+bounds.RightSS.time.tf.ub = model_bounds.params.T;
 
 bounds.LeftDS.time.t0.lb = bounds.RightSS.time.tf.lb;
 bounds.LeftDS.time.t0.ub = bounds.RightSS.time.tf.ub;
@@ -157,15 +164,23 @@ bounds.LeftSS.time.tf.ub = 2 * bounds.RightSS.time.tf.ub;
 
 bounds.RightDS.params.pposition.lb = [bounds.RightDS.time.tf.lb, bounds.RightDS.time.t0.lb];
 bounds.RightDS.params.pposition.ub = [bounds.RightDS.time.tf.ub, bounds.RightDS.time.t0.ub];
+bounds.RightDS.params.pvelocity.lb = bounds.RightDS.params.pposition.lb;
+bounds.RightDS.params.pvelocity.ub = bounds.RightDS.params.pposition.ub;
 
 bounds.RightSS.params.pposition.lb = [bounds.RightSS.time.tf.lb, bounds.RightSS.time.t0.lb];
 bounds.RightSS.params.pposition.ub = [bounds.RightSS.time.tf.ub, bounds.RightSS.time.t0.ub];
+bounds.RightSS.params.pvelocity.lb = bounds.RightSS.params.pposition.lb;
+bounds.RightSS.params.pvelocity.ub = bounds.RightSS.params.pposition.ub;
 
 bounds.LeftDS.params.pposition.lb = [bounds.LeftDS.time.tf.lb, bounds.LeftDS.time.t0.lb];
 bounds.LeftDS.params.pposition.ub = [bounds.LeftDS.time.tf.ub, bounds.LeftDS.time.t0.ub];
+bounds.LeftDS.params.pvelocity.lb = bounds.LeftDS.params.pposition.lb;
+bounds.LeftDS.params.pvelocity.ub = bounds.LeftDS.params.pposition.ub;
 
 bounds.LeftSS.params.pposition.lb = [bounds.LeftSS.time.tf.lb, bounds.LeftSS.time.t0.lb];
 bounds.LeftSS.params.pposition.ub = [bounds.LeftSS.time.tf.ub, bounds.LeftSS.time.t0.ub];
+bounds.LeftSS.params.pvelocity.lb = bounds.LeftSS.params.pposition.lb;
+bounds.LeftSS.params.pvelocity.ub = bounds.LeftSS.params.pposition.ub;
 
 
 %% Setup the NLP
@@ -178,23 +193,48 @@ behavior.edges.l_impact.UserNlpConstraint = @left_impact_constraints;
 behavior.edges.r_lift.UserNlpConstraint   = @right_lift_constraints;
 behavior.edges.r_impact.UserNlpConstraint = @right_impact_constraints;
 
-num_grid.RightDS = 10;
+num_grid.RightDS = 16;
 num_grid.RightSS = 12;
-num_grid.LeftDS = 10;
+num_grid.LeftDS = 16;
 num_grid.LeftSS = 12;
 nlp = HybridTrajectoryOptimization(behavior.name, behavior.hybridSystem, num_grid, ...
                                    [], 'EqualityConstraintBoundary', 1e-5);
-
 nlp.configure(bounds);
 
+% nlp.Phase(1).removeConstraint('y_position_RightDS');
+% nlp.Phase(1).removeConstraint('d1y_position_RightDS');
+% nlp.Phase(1).removeConstraint('position_output_dynamics');
+
+% nlp.Phase(3).removeConstraint('y_position_RightSS');
+% nlp.Phase(3).removeConstraint('d1y_position_RightSS');
+% nlp.Phase(3).removeConstraint('position_output_dynamics');
+
+% nlp.Phase(5).removeConstraint('y_position_LeftDS');
+% nlp.Phase(5).removeConstraint('d1y_position_LeftDS');
+% nlp.Phase(5).removeConstraint('position_output_dynamics');
+
+% nlp.Phase(7).removeConstraint('y_position_LeftSS');
+% nlp.Phase(7).removeConstraint('d1y_position_LeftSS');
+% nlp.Phase(7).removeConstraint('position_output_dynamics');
+
+
+% Append symmetry constraint if coronal average velocity is zero
+Constraints.edgeOutputSymmetry(bounds.RightDS, nlp.Phase(1), nlp.Phase(1), nlp.Phase(5));
+Constraints.edgeOutputSymmetry(bounds.RightSS, nlp.Phase(3), nlp.Phase(3), nlp.Phase(7));
+
+
 %% Add a cost function (or lots)
-% % % Choose the cost type
-% weight = 1e1;
-% CostType = {'BaseMovement', 'BaseMovement', 'BaseMovement', 'BaseMovement'}; 
-% nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
+% % Choose the cost type
+weight = [0; 0; 4; 0.01; 0.01; 1];
+CostType = {'BaseMovement', 'BaseMovement', 'BaseMovement', 'BaseMovement'}; 
+nlp = Opt.applyCost(behavior, nlp, CostType, weight, vd);
 
 weight= 1e-4;
 CostType = {'TorqueSquare', 'TorqueSquare', 'TorqueSquare', 'TorqueSquare'}; 
+nlp = Opt.applyCost(behavior, nlp, CostType, weight);
+
+weight= 1e-2;
+CostType = {'StanceMoment', 'StanceMoment', 'StanceMoment', 'StanceMoment'}; 
 nlp = Opt.applyCost(behavior, nlp, CostType, weight);
 
 % weight= 1e2;

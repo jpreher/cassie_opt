@@ -99,31 +99,61 @@ function [ domain ] = SingleSupport( domain, stanceLeg, ~ )
     h_nsf = UnilateralConstraint(domain, p_nsmf(3), 'nsf', 'x');
     domain = addEvent(domain, h_nsf);
         
-    %% Swing leg is rigid 
-    rigid_springs = [x([nsl, 'ShinPitch']); 
-                     x([nsl, 'AchillesSpring'])];
-    hol_trans_constraint = HolonomicConstraint(domain, rigid_springs, 'RigidSprings', 'DerivativeOrder',2);
-    domain = addHolonomicConstraint(domain, hol_trans_constraint);
+    %% Deal with spring dynamics
+    % Check if we applied behavior spring force
+    % If yes, make swing leg rigid
+    % If no, manually add spring force, make swing leg very high damping
+    if strcmp(domain.Fvec{end}.Name, 'Ge_vec_cassie_v4')
+        % No spring force was added
+        k_knee = 2300;
+        b_knee = 4.6;
+        k_ankle = 2000;
+        b_ankle = 4.0;
+        fs = SymExpression(zeros(domain.numState,1));
+        
+        %%% Knee spring
+        fs(getJointIndices(domain, [nsl, 'ShinPitch']),1) = -domain.States.x([nsl, 'ShinPitch']) * k_knee * 3.0 - domain.States.dx([nsl, 'ShinPitch']) * b_knee * 15.0;
+        fs(getJointIndices(domain, [leg, 'ShinPitch']),1) = -domain.States.x([leg, 'ShinPitch']) * k_knee - domain.States.dx([leg, 'ShinPitch']) * b_knee;
+        %%% Heel Spring
+        fs(getJointIndices(domain, [nsl, 'AchillesSpring']), 1) = -domain.States.x([nsl, 'AchillesSpring']) * k_ankle * 3.0 - domain.States.dx([nsl, 'AchillesSpring']) * b_ankle * 15.0;
+        fs(getJointIndices(domain, [leg, 'AchillesSpring']), 1) = -domain.States.x([leg, 'AchillesSpring']) * k_ankle - domain.States.dx([leg, 'AchillesSpring']) * b_ankle;
+        
+        fs_fun = SymFunction(['spring_forces_', domain.Name], fs, {x, dx});
+        domain.appendDriftVector(fs_fun);
+        
+    else
+        % Swing leg is rigid
+        rigid_springs = [x([nsl, 'ShinPitch']);
+                         x([nsl, 'AchillesSpring'])];
+        hol_trans_constraint = HolonomicConstraint(domain, rigid_springs, 'RigidSprings', 'DerivativeOrder',2);
+        domain = addHolonomicConstraint(domain, hol_trans_constraint);
+    end
     
     %% Define outputs!!!
     % Phase Variable - Time
     t = SymVariable('t');
     p = SymVariable('p',[2,1]);
     tau = (t-p(2))/(p(1)-p(2));
-    %     p_hip = p_pel(1) - p_smf(1);
-    %     p_hip.subs(x(1:6), zeros(6,1));
-    %     deltaPhip = linearize(p_hip, x);
+    p_hip = p_pel(1) - p_smf(1);
+    p_hip = p_hip.subs(x(1:6), zeros(6,1));
+    p_hip = p_hip.subs(x('LeftShinPitch'), 0);
+    p_hip = p_hip.subs(x('LeftTarsusPitch'), deg2rad(13) - x('LeftKneePitch'));
+    p_hip = p_hip.subs(x('RightShinPitch'), 0);
+    p_hip = p_hip.subs(x('RightTarsusPitch'), deg2rad(13) - x('RightKneePitch'));
+    %     p_hip = eval_math_fun('Simplify', p_hip);
+    
+    deltaPhip = linearize(p_hip, x);
     %     p = SymVariable('p',[2,1]);
     %     tau = (deltaPhip-p(2))/(p(1)-p(2));
     
     %% Relative degree one output: linearized hip velocity
-    %     v_hip = jacobian(deltaPhip, x)*dx;
-    %     y1 = VirtualConstraint(domain, v_hip,'velocity','DesiredType','Constant',...
-    %        'RelativeDegree',1,'OutputLabel',{'vhip'},'PhaseType','StateBased',...
-    %        'PhaseVariable', tau, ...
-    %        'PhaseParams', p, ...
-    %        'Holonomic',false);
-    %     domain = addVirtualConstraint(domain,y1);
+%     v_hip = jacobian(deltaPhip, x)*dx;
+%     y1 = VirtualConstraint(domain, v_hip,'velocity','DesiredType','Constant',...
+%         'RelativeDegree',1,'OutputLabel',{'vhip'},'PhaseType','TimeBased',...
+%         'PhaseVariable', tau, ...
+%         'PhaseParams', p, ...
+%         'Holonomic',false);
+%     domain = addVirtualConstraint(domain,y1);
     
     % RD2 Position
     y = [x('BaseRotX');

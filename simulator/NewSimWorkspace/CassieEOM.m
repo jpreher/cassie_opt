@@ -14,16 +14,19 @@ classdef CassieEOM < handle % codegen
         R
         Sc
         Su
+        E
         
         Fcontact
         Fspring
         
         Jc
+        JCc
         Jcontact
         Jspring
         JspringLock
         
         dJc
+        dJCc
         dJcontact
         dJspring
         dJspringLock
@@ -55,7 +58,10 @@ classdef CassieEOM < handle % codegen
             obj.Fspring  = zeros(22,1);
             obj.Jcontact = zeros(10,22);
             obj.Jspring  = zeros(2,22);
-            obj.Jc       = zeros(12,22);
+            obj.Jc       = zeros(9,22);
+            obj.Jc       = zeros(9,22);
+            obj.JCc      = zeros(11,22);
+            obj.dJCc     = zeros(11,22);
             
             obj.leftContact = false;
             obj.rightContact = false;
@@ -117,26 +123,41 @@ classdef CassieEOM < handle % codegen
             obj.Jc = obj.Jspring;
             obj.dJc = obj.dJspring;
             
+            obj.JCc = obj.Jspring;
+            obj.dJCc = obj.dJspring;
+            
             if leftLegSpringLock
                 obj.Jc = [obj.Jc; obj.JspringLock(1:2,:)];
                 obj.dJc = [obj.dJc; obj.dJspringLock(1:2,:)];
+                
+                obj.JCc = [obj.JCc; obj.JspringLock];
+                obj.dJCc = [obj.dJCc; obj.dJspringLock];
             end
             if rightLegSpringLock
                 obj.Jc = [obj.Jc; obj.JspringLock(3:4,:)];
                 obj.dJc = [obj.dJc; obj.dJspringLock(3:4,:)];
+                
+                obj.JCc = [obj.JCc; obj.JspringLock];
+                obj.dJCc = [obj.dJCc; obj.dJspringLock];
             end
             
-            if isLeftContact
+             if isLeftContact
                 obj.Jc = [obj.Jc; obj.Jcontact(1:5,:)]; %[1:3,5:6]
                 obj.dJc = [obj.dJc; obj.dJcontact(1:5,:)];
+                
+                obj.JCc = [obj.JCc; obj.Jcontact(1:5,:)]; %[1:3,5:6]
+                obj.dJCc = [obj.dJCc; obj.dJcontact(1:5,:)];
             end
             if isRightContact
                 obj.Jc = [obj.Jc; obj.Jcontact(6:10,:)]; %[7:9,11:12]
                 obj.dJc = [obj.dJc; obj.dJcontact(6:10,:)];
+                
+                obj.JCc = [obj.JCc; obj.Jcontact(6:10,:)]; %[7:9,11:12]
+                obj.dJCc = [obj.dJCc; obj.dJcontact(6:10,:)];
             end
             
             % QR decomposition of constraints
-            [obj.Q, R0] = qr(obj.Jc');
+            [obj.Q, R0, obj.E] = qr(obj.Jc', 'vector');
             k = size(obj.Jc,1);  % nconstraints
             n = 22;              % nstate
             obj.R = R0(1:k, :);

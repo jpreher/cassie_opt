@@ -30,11 +30,11 @@ end
 
 % Y Direction
 if v_target(2) < 0
-    ub(2) = 0.30 + max(-v_target(2)*T/4, -2*v_target(2)*T);
-    lb(2) = 0.20 - min(-v_target(2)*T/4, -2*v_target(2)*T);
+    ub(2) = 0.28 + max(-v_target(2)*T/4, -2*v_target(2)*T);
+    lb(2) = 0.18 - min(-v_target(2)*T/4, -2*v_target(2)*T);
 else
-    ub(2) = 0.30 + max(v_target(2)*T/4, 2*v_target(2)*T);
-    lb(2) = 0.20 - min(v_target(2)*T/4, 2*v_target(2)*T);
+    ub(2) = 0.28 + max(v_target(2)*T/4, 2*v_target(2)*T);
+    lb(2) = 0.18 - min(v_target(2)*T/4, 2*v_target(2)*T);
 end
 
 addNodeConstraint(nlp, constraint_func, {'x'}, 'first', lb, ub, 'NonLinear');

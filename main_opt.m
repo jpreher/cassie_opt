@@ -14,7 +14,7 @@
 % Author: Jenna Reher (v1, jreher@caltech)
 % _________________________________________________________________________
 do_save = true;
-use_cfrost = true;
+use_cfrost = false;
 addpath(genpath('modules/C-Frost'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -39,8 +39,8 @@ fprintf('Compilation took %f minutes.\n', toc(t1)/60);
 %%%% Create a library of walking gaits
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gait Library
-vd_x = 1.6; %-0.8 : 0.1 : 1.6;
-vd_y = 0.4; %-0.4 : 0.1 : 0.4;
+vd_x = 0; % -0.8 : 0.1 : 1.6;
+vd_y = 0.3;   % : 0.1 : 0.4; %-0.4 : 0.1 : 0.4;
 
 % Iterate over list
 for i = 1:length(vd_x)
@@ -168,7 +168,7 @@ for i = 1:length(vd_x)
                 data = struct();
                 data.logger = logger;
                 data.edges = edges;
-                data.params = params;
+                data.params = params; 
                 data.sol = sol;
                 data.nlp = nlp;
                 

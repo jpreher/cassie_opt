@@ -10,7 +10,7 @@
 % Outputs:
 %   fcn: The Bezier polynomials evaluated at s. 
 %
-% Author: Jake Reher, jreher@caltech.edu
+% Author: Jenna Reher, jreher@caltech.edu
 %
 % Date: August 31, 2017
 % ________________________________________
@@ -24,7 +24,7 @@ m=m-1; %Bezier polynomials have m terms for m-1 order
 
 fcn = zeros(n,y);
 for k = 0:1:m
-    fcn = fcn + coeff(:,k+1).*singleterm_bezier(m,k,s);
+    fcn = fcn + coeff(:,k+1)*singleterm_bezier(m,k,s);
 end
 
 return
@@ -35,9 +35,9 @@ function val = singleterm_bezier(m,k,s)
 if (k == 0)
     val = nchoosek(m,k).*(1-s).^(m-k);
 elseif (m == k)
-    val = nchoosek(m,k).*s.^(k);
+    val = nchoosek(m,k)*s.^(k);
 else
-    val = nchoosek(m,k).*s.^(k).*(1-s).^(m-k);
+    val = nchoosek(m,k)*s.^(k).*(1-s).^(m-k);
 end
 
 return

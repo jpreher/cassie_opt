@@ -39,9 +39,6 @@ classdef behavior < handle
             obj.robotModel = Cassie_v4(urdf);
             obj.robotModel.configureDynamics('DelayCoriolisSet', delay_coriolis, 'OmitCoriolisSet', omit_coriolis);
             
-            % use spring forces
-            obj.robotModel.appendDriftVector(obj.robotModel.fs_fun);
-            
             % Load the controller
             controller  = IOFeedback('IO');
             
