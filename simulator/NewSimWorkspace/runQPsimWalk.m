@@ -17,8 +17,9 @@ final_aposition = gait_param.aposition;
 im = [7,8,9,10, 14,    15,16,17,18, 22];
 x0 = gait_param.x0;
 
-q = x0(1:22);
-dq = 0.* x0(23:44);
+% x0(23:end) = 0;
+q  = x0(1:22);
+dq = x0(23:44);
 
 % Pre-update the dynamics
 dyn = CassieEOM(true);

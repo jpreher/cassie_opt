@@ -12,6 +12,7 @@ classdef QPcontroller < handle
         final_aposition
         v_avg_allocator
         v_avg_count
+        ikSolver
     end
     
     methods
@@ -46,6 +47,9 @@ classdef QPcontroller < handle
             obj.step_has_raibert = false;
             obj.v_avg_allocator = [0;0];
             obj.v_avg_count = 0;
+            
+            % Inverse kinematics
+            obj.ikSolver = SingleSupportIKsolver();
         end
         
         function [u, F, delta] = update(obj, q, dq, dyn, param)
@@ -472,7 +476,7 @@ classdef QPcontroller < handle
             % 0.5*x'*H*x + f'*x
             % Assemble and solve
             w_ach_hol = 10;
-            w_rigidsp_hol = 5;
+            w_rigidsp_hol = 0.01;
             w_contact_hol = 10;
             w_hol = [w_ach_hol * ones(2,1);
                 w_contact_hol * ones(5,1);
@@ -546,7 +550,20 @@ classdef QPcontroller < handle
         function [u, F, delta] = new_proj_clfqp(obj, q, dq, LFV, LGV, psi0, psi1, dyn, param)
             % Make sure initial guess is not empty
             if isempty(obj.u_bar_last)
-                obj.u_bar_last = zeros(33,1);
+                obj.u_bar_last = zeros(40,1);
+            end
+            
+            % Stance spring soft constraint
+            if strcmp(param.stance_leg,'Left')
+                Jc = [frost_expr.constraints.J_leftSole_constraint(q);
+                      frost_expr.constraints.J_left_fixed_constraint(q)];
+                dJc = [frost_expr.constraints.Jdot_leftSole_constraint(q,dq);
+                       frost_expr.constraints.Jdot_left_fixed_constraint(q,dq)];
+            elseif strcmp(param.stance_leg,'Right')
+                Jc = [frost_expr.constraints.J_rightSole_constraint(q);
+                      frost_expr.constraints.J_right_fixed_constraint(q)];
+                dJc = [frost_expr.constraints.Jdot_rightSole_constraint(q,dq);
+                       frost_expr.constraints.Jdot_right_fixed_constraint(q,dq)];
             end
             
             % Get dynamics terms
@@ -572,7 +589,7 @@ classdef QPcontroller < handle
             b_ub_fric = -P*JcTinv*He;
             
             % CLF Convergence Constraint
-            A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), -1 ];
+            A_clf = [ LGV*obj.outputs.Dya(:,1:22), zeros(1,10), zeros(1,7), -1 ];
             b_lb_clf = -inf;
             b_ub_clf = inf;
             %b_ub_clf = - obj.outputs.gam*obj.outputs.Veta - LFV - LGV * obj.outputs.DLfya(:,23:44) * dq;
@@ -587,7 +604,7 @@ classdef QPcontroller < handle
                 ub_u = obj.ubu; ub_u(10) = 0;
             end
             u_prev = obj.u_bar_last(23:32);
-            A_u_chat = [zeros(10,22), eye(10), zeros(10,1)];
+            A_u_chat = [zeros(10,22), eye(10), zeros(10,7), zeros(10,1)];
             b_u_chat = u_prev;
             
             % Output PD control + virtual holonomic
@@ -597,8 +614,18 @@ classdef QPcontroller < handle
             b_y = obj.outputs.d2yd - obj.outputs.DLfya(:,23:44) * dq - Kpy*obj.outputs.y - Kdy*obj.outputs.dy;
             
             % Regularization
-            A_reg = eye(33);
-            b_reg = zeros(33,1);
+            A_reg = eye(40);
+            b_reg = zeros(40,1);
+            
+            ddqd = bezier(param.gait_param.ddqd, param.phase.tau);
+            %b_reg(1:22) = pinv(dyn.Jc)*dyn.dJc*dq + (eye(22) - pinv(dyn.Jc)*dyn.Jc)*ddqd;
+            b_reg(1:22) = ddqd;
+            
+            fd = bezier(param.gait_param.fd, param.phase.tau);
+            b_reg(33:37) = fd(3:7);
+            
+            fspd = Jc(6:7,:) * dyn.Fspring;
+            b_reg(38:39) = fspd;
             
             ddqd = bezier(param.gait_param.ddqd, param.phase.tau);
             b_reg(1:22) = ddqd;
@@ -650,7 +677,7 @@ classdef QPcontroller < handle
                 % If we did not converge, use IO controller
                 u = obj.IO_control(q, dq, psi0, psi1, dyn, param);
                 delta = 0;
-                u_bar = [zeros(22,1); u; delta];
+                u_bar = [zeros(22,1); u; zeros(7,1); delta];
             end
             
             % Finalize

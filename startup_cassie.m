@@ -20,7 +20,7 @@ addpath('modules/cassie_description/MATLAB');
 
 %%% Control the symbolic expression export %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 delay_coriolis  = true;
-omit_coriolis   = false;
+omit_coriolis   = true;
 
    do_export_model = 0;
 do_export_behavior = 0;
@@ -28,8 +28,8 @@ do_export_behavior = 0;
 
 %%% Stepping (time-based) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % behaviorName = 'stepping_planar';
-behaviorName = 'stepping';
-% behaviorName = 'walking';
+% behaviorName = 'stepping';
+behaviorName = 'walking';
 
     
 %%  Run the associated behavior constructor %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
